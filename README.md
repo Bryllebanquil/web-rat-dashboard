@@ -186,27 +186,39 @@ The React frontend communicates with the Flask backend using Socket.IO events:
 7. **Responsive Design**: Mobile-friendly responsive layout
 8. **Performance**: Optimized rendering and data handling
 
-## Development
+## Development (Windows)
 
 ### Prerequisites
 - Node.js 18+
 - Python 3.8+
-- Flask, Flask-SocketIO
-- aiortc (for WebRTC features)
+- Windows 10/11
 
 ### Setup
-```bash
+```cmd
 # Install frontend dependencies
 npm install
 
+# Create and activate virtual environment
+python -m venv venv
+venv\Scripts\activate.bat
+
 # Install backend dependencies
-pip install flask flask-socketio eventlet aiortc
+pip install -r requirements.txt
 
 # Start backend
 python controller.py
 
 # Start frontend (in development)
 npm run dev
+```
+
+### Quick Start (Windows)
+```cmd
+# Option 1: Use batch file
+run.bat
+
+# Option 2: Use bash script (if you have Git Bash/WSL)
+./run.sh
 ```
 
 ### Production Deployment
@@ -217,6 +229,18 @@ npm run build
 # Serve static files through Flask
 # Frontend build files should be served at / route
 ```
+
+## Windows Compatibility
+
+### WebRTC Support
+- **Default**: WebRTC is disabled due to Windows compatibility issues with `aiortc`
+- **Fallback**: Uses Socket.IO streaming for video/audio
+- **To Enable WebRTC**: Uncomment the WebRTC dependencies in `requirements.txt` and install Visual Studio Build Tools + FFmpeg
+
+### Troubleshooting
+- **RLock Error**: Fixed in the updated `controller.py`
+- **Import Errors**: WebRTC imports are now handled gracefully
+- **Port Issues**: Change port in configuration or kill existing processes
 
 ## Security Considerations
 

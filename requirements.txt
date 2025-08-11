@@ -1,23 +1,13 @@
-# Core Flask and WebSocket dependencies
+# Core Flask and WebSocket dependencies (Windows compatible)
 flask==3.1.1
 flask-socketio==5.5.1
 eventlet==0.40.2
-
-# WebRTC dependencies (optional - can be disabled for Windows compatibility)
-# aiortc==1.13.0  # Commented out due to Windows compatibility issues
-# av==14.4.0      # Commented out due to Windows compatibility issues
-
-# Alternative WebRTC solution for Windows
-# Use webrtc-python or disable WebRTC features
-# webrtc-python==0.1.0
-
-# Additional dependencies that might be needed
 python-socketio==5.13.0
 python-engineio==4.12.2
-
-# Security and cryptography
 cryptography==45.0.6
 
-# Optional: For better performance on Windows
-# gevent==24.2.1
-# gevent-websocket==0.10.1
+# WebRTC dependencies (optional - may fail on Windows)
+# Uncomment these lines if you want to try WebRTC on Windows
+# Note: May require Visual Studio Build Tools and FFmpeg
+# aiortc==1.13.0
+# av==14.4.0

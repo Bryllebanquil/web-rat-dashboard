@@ -23,8 +23,8 @@ REM Install dependencies
 echo Installing dependencies...
 pip install -r requirements.txt
 
-REM Start the Windows-compatible controller
+REM Start the controller
 echo Starting backend server...
-python controller_windows.py
+python controller.py
 
 pause

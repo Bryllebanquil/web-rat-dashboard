@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Neural Control Hub - Run Script
+# Neural Control Hub - Windows Run Script
 # This script starts both the Python backend and React frontend
 
-echo "🚀 Starting Neural Control Hub..."
+echo "🚀 Starting Neural Control Hub (Windows)..."
 
 # Function to cleanup background processes on exit
 cleanup() {
