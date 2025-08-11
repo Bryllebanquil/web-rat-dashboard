@@ -13,6 +13,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DoughnutChart from "@/components/charts/DoughnutChart";
 import TrendLineChart from "@/components/charts/TrendLineChart";
+import ActiveAgentsCard from "@/components/dashboard/ActiveAgentsCard";
+import ConfigStatusCard from "@/components/dashboard/ConfigStatusCard";
+import PasswordManagementCard from "@/components/dashboard/PasswordManagementCard";
+import FilterToolbar from "@/components/dashboard/FilterToolbar";
 
 // Small helper to update meta for SEO
 const setMeta = (name: string, content: string) => {
@@ -234,12 +238,17 @@ const Index = () => {
           <p className="text-sm text-muted-foreground">
             {categories.find((c) => c.key === category)?.description}
           </p>
+          <FilterToolbar category={category} check={check} range={range} />
         </div>
       </header>
 
       <section className="container py-6 grid gap-6">
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card className="relative">
+        <div className="grid gap-6 md:grid-cols-12">
+          <div className="md:col-span-12 lg:col-span-3">
+            <ActiveAgentsCard />
+          </div>
+
+          <Card className="relative md:col-span-6 lg:col-span-3">
             <CardHeader>
               <CardTitle>Agent Report Status</CardTitle>
             </CardHeader>
@@ -248,7 +257,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="md:col-span-6 lg:col-span-3">
             <CardHeader>
               <CardTitle>Agent Connection Status</CardTitle>
             </CardHeader>
@@ -257,7 +266,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="md:col-span-12 lg:col-span-3">
             <CardHeader>
               <CardTitle>Bypass Status</CardTitle>
             </CardHeader>
@@ -295,8 +304,8 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
+        <div className="grid gap-6 md:grid-cols-12">
+          <Card className="md:col-span-12 lg:col-span-9">
             <CardHeader>
               <CardTitle>Controller Status (Realtime)</CardTitle>
             </CardHeader>
@@ -311,21 +320,10 @@ const Index = () => {
               />
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Service Composition</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DoughnutChart
-                data={[
-                  { name: "API", value: 1 },
-                  { name: "Signaling", value: 1 },
-                  { name: "Workers", value: 1 },
-                ]}
-                totalLabel="Services"
-              />
-            </CardContent>
-          </Card>
+          <div className="md:col-span-12 lg:col-span-3 grid gap-6">
+            <ConfigStatusCard />
+            <PasswordManagementCard />
+          </div>
         </div>
       </section>
     </main>
