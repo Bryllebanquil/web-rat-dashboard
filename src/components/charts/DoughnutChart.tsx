@@ -39,7 +39,7 @@ export const DoughnutChart: React.FC<DoughnutChartProps> = ({ title, data, total
         <div className="text-center">
           <div className="text-2xl font-semibold">{total}</div>
           {totalLabel && (
-            <div className="text-xs text-muted-foreground">{totalLabel}</div>
+            <div className="text-xs text-muted-foreground mt-1">{totalLabel}</div>
           )}
         </div>
       </div>
