@@ -171,7 +171,7 @@ const Index = () => {
               <Button variant="secondary" className="animate-glow">Overview</Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="secondary">Category</Button>
+                  <Button variant="secondary" className="animate-glow">Category</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="z-50 bg-popover">
                   <DropdownMenuLabel>Categories</DropdownMenuLabel>
@@ -191,7 +191,7 @@ const Index = () => {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="secondary">Checks</Button>
+                  <Button variant="secondary" className="animate-glow">Checks</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="z-50 bg-popover">
                   <DropdownMenuLabel>Checks</DropdownMenuLabel>
@@ -211,7 +211,7 @@ const Index = () => {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="secondary">Time Range</Button>
+                  <Button variant="secondary" className="animate-glow">Time Range</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="z-50 bg-popover">
                   <DropdownMenuLabel>Log & Activity Filters</DropdownMenuLabel>
