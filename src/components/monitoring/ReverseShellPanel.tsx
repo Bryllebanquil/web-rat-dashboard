@@ -82,7 +82,7 @@ const ReverseShellPanel: React.FC<ReverseShellPanelProps> = ({ agentId }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080/ws');
+  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080');
 
   // WebSocket message handling
   useEffect(() => {

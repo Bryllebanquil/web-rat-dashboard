@@ -55,7 +55,7 @@ const KeyloggerPanel: React.FC<KeyloggerPanelProps> = ({ agentId }) => {
   });
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080/ws');
+  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080');
 
   useEffect(() => {
     if (lastMessage) {

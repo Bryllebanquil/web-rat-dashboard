@@ -33,7 +33,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({ agentId }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080/ws');
+  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080');
 
   useEffect(() => {
     if (lastMessage) {

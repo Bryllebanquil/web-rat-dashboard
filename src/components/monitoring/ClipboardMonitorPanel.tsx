@@ -67,7 +67,7 @@ const ClipboardMonitorPanel: React.FC<ClipboardMonitorPanelProps> = ({ agentId }
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080/ws');
+  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080');
 
   // WebSocket message handling
   useEffect(() => {

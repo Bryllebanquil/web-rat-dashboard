@@ -73,7 +73,7 @@ const VoiceControlPanel: React.FC<VoiceControlPanelProps> = ({ agentId }) => {
   const [customCommand, setCustomCommand] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080/ws');
+  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080');
 
   // WebSocket message handling
   useEffect(() => {

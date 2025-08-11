@@ -23,7 +23,7 @@ import {
   Shield,
   Database,
   Activity,
-  FileTransfer,
+  Upload,
   Terminal,
   Keyboard,
   List,
