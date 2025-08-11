@@ -39,20 +39,32 @@ All colors MUST be HSL.
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Dashboard brand + chart palette */
+    --brand: 262 83% 58%;
+    --brand-2: 190 94% 42%;
+    --brand-3: 312 79% 59%;
+    --brand-4: 150 60% 46%;
+    --chart-1: var(--brand);
+    --chart-2: var(--brand-2);
+    --chart-3: var(--brand-3);
+    --chart-4: var(--brand-4);
+
+    /* Gradients & shadows */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand-2)) 100%);
+    --gradient-surface: linear-gradient(180deg, hsl(222.2 16% 98%) 0%, hsl(222.2 16% 96%) 100%);
+    --shadow-elev-1: 0 6px 24px hsl(var(--brand) / 0.12);
+    --shadow-glow: 0 0 40px hsl(var(--brand-2) / 0.25);
+
+    /* Motion */
+    --transition-smooth: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .dark {
@@ -83,6 +95,7 @@ All colors MUST be HSL.
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -91,6 +104,23 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Dark palette mirrors */
+    --brand: 262 83% 66%;
+    --brand-2: 190 94% 55%;
+    --brand-3: 312 79% 66%;
+    --brand-4: 150 60% 52%;
+    --chart-1: var(--brand);
+    --chart-2: var(--brand-2);
+    --chart-3: var(--brand-3);
+    --chart-4: var(--brand-4);
+
+    --gradient-primary: linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand-2)) 100%);
+    --gradient-surface: linear-gradient(180deg, hsl(222.2 24% 10%) 0%, hsl(222.2 24% 8%) 100%);
+    --shadow-elev-1: 0 6px 24px hsl(var(--brand) / 0.25);
+    --shadow-glow: 0 0 48px hsl(var(--brand-2) / 0.35);
+
+    --transition-smooth: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
 
