@@ -95,7 +95,7 @@ const Index = () => {
   const [activeView, setActiveView] = useState("overview");
 
   // WebSocket connection for real-time updates
-  const { isConnected, lastMessage, sendMessage } = useWebSocket('ws://localhost:8080/ws');
+  const { isConnected, lastMessage, sendMessage } = useWebSocket('ws://localhost:8080');
 
   // Mock agent data - in real implementation, this would come from WebSocket
   const [agents, setAgents] = useState<Agent[]>([

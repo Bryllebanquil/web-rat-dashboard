@@ -17,7 +17,8 @@ import threading
 import os
 import base64
 
-# WebRTC imports for SFU functionality
+# WebRTC imports for SFU functionality - Windows compatible
+WEBRTC_AVAILABLE = False
 try:
     import asyncio
     import aiortc
@@ -26,9 +27,14 @@ try:
     from aiortc.mediastreams import MediaStreamError
     WEBRTC_AVAILABLE = True
     print("WebRTC (aiortc) support enabled")
-except ImportError:
+except ImportError as e:
     WEBRTC_AVAILABLE = False
-    print("WebRTC (aiortc) not available - falling back to Socket.IO streaming")
+    print(f"WebRTC (aiortc) not available - {e}")
+    print("Falling back to Socket.IO streaming only")
+except Exception as e:
+    WEBRTC_AVAILABLE = False
+    print(f"WebRTC (aiortc) initialization failed - {e}")
+    print("Falling back to Socket.IO streaming only")
 
 # Configuration Management
 class Config:

@@ -99,7 +99,7 @@ const EnhancedFileTransferPanel: React.FC<EnhancedFileTransferPanelProps> = ({ a
   const [activeTab, setActiveTab] = useState("transfers");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080/ws');
+  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080');
 
   // WebSocket message handling
   useEffect(() => {

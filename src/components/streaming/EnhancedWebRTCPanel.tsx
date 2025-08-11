@@ -89,7 +89,7 @@ const EnhancedWebRTCPanel: React.FC<EnhancedWebRTCPanelProps> = ({ agentId }) =>
   const [migrationPlan, setMigrationPlan] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("streaming");
 
-  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080/ws');
+  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080');
 
   // WebSocket message handling
   useEffect(() => {
@@ -197,7 +197,7 @@ const EnhancedWebRTCPanel: React.FC<EnhancedWebRTCPanelProps> = ({ agentId }) =>
     sendMessage(JSON.stringify({
       type: 'webrtc_start_streaming',
       agent_id: agentId,
-      type: 'all'
+      stream_type: 'all'
     }));
     setIsStreaming(true);
   };

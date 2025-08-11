@@ -72,7 +72,7 @@ const NetworkPanel: React.FC<NetworkPanelProps> = ({ agentId }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<string>("");
 
-  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080/ws');
+  const { sendMessage, lastMessage } = useWebSocket('ws://localhost:8080');
 
   useEffect(() => {
     if (lastMessage) {

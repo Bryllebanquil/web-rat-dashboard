@@ -6,7 +6,7 @@ interface WebSocketMessage {
   timestamp: string;
 }
 
-export const useWebSocket = (url: string) => {
+export const useWebSocket = (url: string = 'ws://localhost:8080') => {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const ws = useRef<WebSocket | null>(null);
