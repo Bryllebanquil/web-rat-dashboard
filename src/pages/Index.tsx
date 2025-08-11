@@ -464,14 +464,14 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <Tabs value={bypassView} onValueChange={(v) => setBypassView(v as any)}>
-                <TabsList className="mb-2">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
                   <TabsTrigger value="persistence">Persistence Methods</TabsTrigger>
                   <TabsTrigger value="uac">UAC Bypass Methods</TabsTrigger>
                 </TabsList>
-                <TabsContent value="persistence" className="mt-2">
+                <TabsContent value="persistence" className="mt-0">
                   <DoughnutChart data={persistenceMethods} totalLabel="Active Methods" />
                 </TabsContent>
-                <TabsContent value="uac" className="mt-2">
+                <TabsContent value="uac" className="mt-0">
                   <DoughnutChart data={uacBypass} totalLabel="Attempts" />
                 </TabsContent>
               </Tabs>
