@@ -134,7 +134,7 @@ const Index = () => {
       { name: "Errors", value: agents.filter(a => !a.security.defenderDisabled && a.status === 'online').length },
       { name: "Bugs", value: agents.filter(a => !a.privileges.admin && a.status === 'online').length },
     ]
-  ), []);
+  ), [agents]);
 
   const connectionStatus = useMemo(() => (
     [
