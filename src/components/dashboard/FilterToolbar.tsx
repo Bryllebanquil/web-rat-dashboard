@@ -30,9 +30,9 @@ const FilterToolbar: React.FC<FilterToolbarProps> = ({ deviceGroup = "Online", c
         <Pill label="Time Range" value={range} />
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="secondary" onClick={onSystemHealth}>System Health</Button>
-        <Button variant="secondary" onClick={onListProcesses}>List Processes</Button>
-        <Button variant="secondary" onClick={onRefreshDashboard}>Refresh Dashboard</Button>
+        <Button variant="secondary" className="hover-scale" onClick={onSystemHealth}>System Health</Button>
+        <Button variant="secondary" className="hover-scale" onClick={onListProcesses}>List Processes</Button>
+        <Button variant="secondary" className="hover-scale" onClick={onRefreshDashboard}>Refresh Dashboard</Button>
       </div>
       <Separator className="basis-full" />
     </div>

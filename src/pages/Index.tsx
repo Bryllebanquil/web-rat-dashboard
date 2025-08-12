@@ -216,7 +216,7 @@ const Index = () => {
   );
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background animate-fade-in">
       <header className="sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-background/70 border-b">
         <div className="container py-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
@@ -227,60 +227,60 @@ const Index = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="secondary" className="animate-glow">Category</Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="z-50 bg-popover">
-                  <DropdownMenuLabel>Categories</DropdownMenuLabel>
-                  <DropdownMenuRadioGroup value={category} onValueChange={setCategory}>
-                    {categories.map((c) => (
-                      <DropdownMenuRadioItem key={c.key} value={c.key}>
-                        {c.label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                  <Separator className="my-2" />
-                  {filterPreviewDonut}
-                  <Separator className="my-2" />
-                  {filterPreviewLine}
-                </DropdownMenuContent>
+                  <DropdownMenuContent className="z-50 bg-popover animate-scale-in">
+                    <DropdownMenuLabel>Categories</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup value={category} onValueChange={setCategory}>
+                      {categories.map((c) => (
+                        <DropdownMenuRadioItem key={c.key} value={c.key}>
+                          {c.label}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                    <Separator className="my-2" />
+                    {filterPreviewDonut}
+                    <Separator className="my-2" />
+                    {filterPreviewLine}
+                  </DropdownMenuContent>
               </DropdownMenu>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="secondary" className="animate-glow">Checks</Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="z-50 bg-popover">
-                  <DropdownMenuLabel>Checks</DropdownMenuLabel>
-                  <DropdownMenuRadioGroup value={check} onValueChange={setCheck}>
-                    {checks.map((c) => (
-                      <DropdownMenuRadioItem key={c.key} value={c.key}>
-                        {c.label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                  <Separator className="my-2" />
-                  {filterPreviewDonut}
-                  <Separator className="my-2" />
-                  {filterPreviewLine}
-                </DropdownMenuContent>
+                  <DropdownMenuContent className="z-50 bg-popover animate-scale-in">
+                    <DropdownMenuLabel>Checks</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup value={check} onValueChange={setCheck}>
+                      {checks.map((c) => (
+                        <DropdownMenuRadioItem key={c.key} value={c.key}>
+                          {c.label}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                    <Separator className="my-2" />
+                    {filterPreviewDonut}
+                    <Separator className="my-2" />
+                    {filterPreviewLine}
+                  </DropdownMenuContent>
               </DropdownMenu>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="secondary" className="animate-glow">Time Range</Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="z-50 bg-popover">
-                  <DropdownMenuLabel>Log & Activity Filters</DropdownMenuLabel>
-                  <DropdownMenuRadioGroup value={range} onValueChange={setRange}>
-                    {ranges.map((r) => (
-                      <DropdownMenuRadioItem key={r.key} value={r.key}>
-                        {r.label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                  <Separator className="my-2" />
-                  {filterPreviewDonut}
-                  <Separator className="my-2" />
-                  {filterPreviewLine}
-                </DropdownMenuContent>
+                  <DropdownMenuContent className="z-50 bg-popover animate-scale-in">
+                    <DropdownMenuLabel>Log & Activity Filters</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup value={range} onValueChange={setRange}>
+                      {ranges.map((r) => (
+                        <DropdownMenuRadioItem key={r.key} value={r.key}>
+                          {r.label}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                    <Separator className="my-2" />
+                    {filterPreviewDonut}
+                    <Separator className="my-2" />
+                    {filterPreviewLine}
+                  </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
@@ -312,10 +312,10 @@ const Index = () => {
                 ) : (
                   <div className="space-y-2">
                     {agents.map((agent) => (
-                      <div key={agent.id} className="flex items-center justify-between p-2 border rounded">
+                      <div key={agent.id} className="flex items-center justify-between p-2.5 border rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors hover-scale">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${agent.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`} />
+                            <div className={`${agent.status === 'online' ? 'bg-green-500' : 'bg-red-500'} w-2 h-2 rounded-full`} />
                             <span className="font-medium text-sm">{agent.hostname}</span>
                           </div>
                           <div className="text-xs text-muted-foreground">{agent.ip} • {agent.os}</div>
