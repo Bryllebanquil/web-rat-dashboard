@@ -7,6 +7,9 @@ interface FilterToolbarProps {
   category: string;
   check: string;
   range: string;
+  onSystemHealth?: () => void;
+  onListProcesses?: () => void;
+  onRefreshDashboard?: () => void;
 }
 
 const Pill: React.FC<{ label: string; value: string }>
@@ -17,7 +20,7 @@ const Pill: React.FC<{ label: string; value: string }>
   </div>
 );
 
-const FilterToolbar: React.FC<FilterToolbarProps> = ({ deviceGroup = "Online", category, check, range }) => {
+const FilterToolbar: React.FC<FilterToolbarProps> = ({ deviceGroup = "Online", category, check, range, onSystemHealth, onListProcesses, onRefreshDashboard }) => {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-3">
@@ -27,8 +30,9 @@ const FilterToolbar: React.FC<FilterToolbarProps> = ({ deviceGroup = "Online", c
         <Pill label="Time Range" value={range} />
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="secondary">Export</Button>
-        <Button variant="secondary">Refresh</Button>
+        <Button variant="secondary" onClick={onSystemHealth}>System Health</Button>
+        <Button variant="secondary" onClick={onListProcesses}>List Processes</Button>
+        <Button variant="secondary" onClick={onRefreshDashboard}>Refresh Dashboard</Button>
       </div>
       <Separator className="basis-full" />
     </div>

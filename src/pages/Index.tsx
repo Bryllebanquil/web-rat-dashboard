@@ -97,7 +97,6 @@ const Index = () => {
     qualityData,
     productionReadiness,
     executeCommand,
-    getAgentStats,
     getSystemHealth,
     listProcesses,
     refreshDashboard,
@@ -289,7 +288,7 @@ const Index = () => {
           <p className="text-sm text-muted-foreground">
             {categories.find((c) => c.key === category)?.description}
           </p>
-          <FilterToolbar category={category} check={check} range={range} />
+          <FilterToolbar category={category} check={check} range={range} onSystemHealth={getSystemHealth} onListProcesses={listProcesses} onRefreshDashboard={refreshDashboard} />
         </div>
       </header>
 
@@ -336,38 +335,6 @@ const Index = () => {
                     ))}
                   </div>
                 )}
-                <div className="grid gap-2">
-                  <Button
-                    variant="secondary"
-                    className="justify-start font-medium"
-                    style={{ backgroundImage: "var(--gradient-primary)" }}
-                    onClick={getAgentStats}
-                  >
-                    Agent Stats
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    className="justify-start bg-muted/30"
-                    onClick={getSystemHealth}
-                  >
-                    System Health
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    className="justify-start bg-muted/30"
-                    onClick={listProcesses}
-                  >
-                    List Processes
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    className="justify-start bg-muted/30"
-                    onClick={refreshDashboard}
-                  >
-                    Refresh Dashboard
-                  </Button>
-                </div>
-                <Separator />
               </CardContent>
             </Card>
           </div>

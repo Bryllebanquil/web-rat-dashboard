@@ -13,25 +13,6 @@ const ActiveAgentsCard: React.FC = () => {
         <div className="rounded-lg border border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
           No agents connected
         </div>
-        <div className="grid gap-2">
-          <Button
-            variant="secondary"
-            className="justify-start font-medium"
-            style={{ backgroundImage: "var(--gradient-primary)" }}
-          >
-            Agent Stats
-          </Button>
-          <Button variant="secondary" className="justify-start bg-muted/30">
-            System Health
-          </Button>
-          <Button variant="secondary" className="justify-start bg-muted/30">
-            List Processes
-          </Button>
-          <Button variant="secondary" className="justify-start bg-muted/30">
-            Refresh Dashboard
-          </Button>
-        </div>
-        <Separator />
       </CardContent>
     </Card>
   );
